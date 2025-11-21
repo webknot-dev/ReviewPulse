@@ -1,12 +1,12 @@
 import app from './app';
-import { connectDB } from './config/db';
+// import { connectDB } from './config/db';
 
 const PORT = process.env.PORT || 3001;
 
 const startServer = async () => {
   try {
     // Connect to MongoDB
-    await connectDB();
+    // await connectDB();
 
     // Start server
     app.listen(PORT, () => {

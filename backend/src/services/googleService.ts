@@ -23,77 +23,59 @@ export interface GooglePlaceDetails {
  * Falls back to mock data if API key is not available
  */
 export const fetchPlaceDetails = async (
-  placeId: string
+  place: string
 ): Promise<GooglePlaceDetails> => {
   const apiKey = process.env.GOOGLE_PLACES_API_KEY;
+    const baseUrlPlace = "https://maps.googleapis.com/maps/api/place/findplacefromtext/json"
+    const baseUrlDetails = "https://maps.googleapis.com/maps/api/place/details/json"
 
   if (!apiKey || apiKey === 'your_google_places_api_key_here') {
     console.log('⚠️ Google Places API key not found, using mock data');
-    return getMockPlaceData(placeId);
+    return getMockPlaceData(place);
   }
 
   try {
-    // Fetch place details
-    const detailsUrl = `https://maps.googleapis.com/maps/api/place/details/json`;
-    const detailsResponse = await axios.get(detailsUrl, {
-      params: {
-        place_id: placeId,
-        fields: 'place_id,name,formatted_address,types,rating,user_ratings_total,reviews',
-        key: apiKey,
-      },
-    });
+      // Step 1: Search the place
+      const searchRes = await axios.get(baseUrlPlace, {
+          params: {
+              input: place,
+              inputtype: "textquery",
+              fields: "place_id",
+              key: apiKey
+          }
+      });
 
-    if (detailsResponse.data.status === 'OK') {
-      return detailsResponse.data.result;
-    } else {
-      console.warn(`⚠️ Google Places API error: ${detailsResponse.data.status}, using mock data`);
-      return getMockPlaceData(placeId);
-    }
+      const placeId = searchRes.data.candidates[0].place_id;
+
+      // Step 2: Fetch reviews
+      const reviewsRes = await axios.get(baseUrlDetails, {
+          params: {
+              place_id: placeId,
+              fields: "name,rating,reviews,formatted_address",
+              key: apiKey,
+          }
+      });
+
+      let placeDetails = reviewsRes.data.result;
+
+      return {
+          place_id: placeId,
+          name: placeDetails.name,
+          formatted_address: placeDetails.formatted_address,
+          types: ['restaurant', 'food', 'establishment'],
+          rating: placeDetails.rating,
+          user_ratings_total: placeDetails.rating,
+          reviews: placeDetails.reviews,
+      };
+
   } catch (error) {
-    console.error('❌ Error fetching from Google Places API:', error);
-    console.log('📦 Falling back to mock data');
-    return getMockPlaceData(placeId);
+      console.error('❌ Error fetching from Google Places API:', error);
+      console.log('📦 Falling back to mock data');
+      return getMockPlaceData(place);
   }
 };
 
 /**
- * Filters reviews by date range
- */
-export const filterReviewsByDateRange = (
-  reviews: GoogleReview[],
-  dateRange: 'week' | 'month' | 'year' | 'all'
-): GoogleReview[] => {
-  if (dateRange === 'all') {
-    return reviews;
-  }
-
-  const now = Date.now();
-  const msPerDay = 24 * 60 * 60 * 1000;
-  let daysBack: number;
-
-  switch (dateRange) {
-    case 'week':
-      daysBack = 7;
-      break;
-    case 'month':
-      daysBack = 30;
-      break;
-    case 'year':
-      daysBack = 365;
-      break;
-    default:
-      return reviews;
-  }
-
-  const cutoffTime = now - daysBack * msPerDay;
-
-  return reviews.filter((review) => {
-    // Convert time (seconds) to milliseconds
-    const reviewTime = review.time * 1000;
-    return reviewTime >= cutoffTime;
-  });
-};
-
 /**
  * Mock data generator for development/testing
  */
