@@ -4,10 +4,16 @@ import { GoogleGenAI } from "@google/genai";
 export interface AnalysedReviewData {
     place_name: string,
     rating?: number,
-    pos_reviews: Array<string>,
-    neg_reviews: Array<string>,
+    pos_reviews: Array<AnalysedReview>,
+    neg_reviews: Array<AnalysedReview>,
     overall_sentiment: string,
     highlights: Array<string>,
+    total_reviews?: number,
+}
+
+export interface AnalysedReview {
+    text: string,
+    mentions: number
 }
 
 const prompt = `You are an AI system that analyzes Google reviews.
@@ -20,11 +26,12 @@ Task:
 3. Find the overall sentiment (positive/negative/neutral).
 4. Give the highlights based on the reviews.
     Eg: This kind of food is famous in this restaurant or this place is famous for this etc..
-5. Return ONLY JSON in the following format:
+5. Add mentions an extra value to each review which will be the number of same kind or closely relatable reviews are there.  
+6. Return ONLY JSON in the following format:
 
 {
-   "positive": ["..."],
-  "negative": ["..."],
+   "positive": [{text: "...", mentions: 2}],
+  "negative": [{text: "...", mentions: 2}],
   "overall_sentiment": "...",
   "highlights": ["..."],
   "summary": "..."
@@ -59,6 +66,7 @@ export const analyzeSentiment = async (placeData: GooglePlaceDetails): Promise<A
         neg_reviews: formattedGenAiResponse.negative,
         overall_sentiment: formattedGenAiResponse.overall_sentiment,
         highlights: formattedGenAiResponse.highlights,
+        total_reviews: placeData.reviews?.length
     }
 
 };
@@ -74,4 +82,3 @@ function extractJsonFromGenAiResponse(text:any) {
         throw new Error("Invalid JSON from AI");
     }
 }
-
