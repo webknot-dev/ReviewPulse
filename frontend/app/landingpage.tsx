@@ -46,17 +46,19 @@ export default function LandingPage(props: LandingPageProps = {}) {
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
-    // Only proceed if a search result is selected
-    if (selectedQuery.trim()) {
+    // Use query if available, otherwise use selectedQuery
+    const placeToSearch = query.trim() || selectedQuery.trim()
+    
+    if (placeToSearch) {
       setIsLoading(true)
       setError('')
       
       try {
-        console.log('🔍 Starting API call for selected place:', selectedQuery);
+        console.log('🔍 Starting API call for place:', placeToSearch);
         
         // Try native fetch first to test connectivity
         console.log('🧪 Trying native fetch first...');
-        const testResponse = await reviewAPI.testFetch(selectedQuery);
+        const testResponse = await reviewAPI.testFetch(placeToSearch);
         console.log('🧪 Native fetch successful:', testResponse);
         
         // If fetch works, use it instead of axios
@@ -66,12 +68,30 @@ export default function LandingPage(props: LandingPageProps = {}) {
         
         if (response && response.success) {
           console.log('✅ Success! Navigating to analytics...');
-          // Navigate to analytics with the selected place
-          if (onNavigateToAnalytics) {
-            onNavigateToAnalytics(selectedQuery)
-          } else {
-            router.push(`/dashboard/${encodeURIComponent(selectedQuery)}`)
+          
+          // Get category from response and redirect accordingly
+          const category = response.placeData?.category?.toLowerCase() || 'other'
+          // Use the original search query, not the API's place_name
+          const placeName = placeToSearch
+          
+          // Map category to route
+          const categoryRoutes: Record<string, string> = {
+            'restaurant': '/restaurant',
+            'hotel': '/hotel',
+            'education': '/education',
+            'retail': '/retail',
+            'health': '/health',
+            'financial': '/financial',
+            'venue': '/venue',
+            'service-center': '/service-center',
+            'other': '/other'
           }
+          
+          const route = categoryRoutes[category] || '/other'
+          const url = `${route}?place=${encodeURIComponent(placeName)}`
+          
+          console.log(`📍 Redirecting to: ${url} (category: ${category})`)
+          router.push(url)
         } else {
           console.log('❌ API returned success: false');
           setError('Failed to fetch reviews. Please try again.')
@@ -82,6 +102,8 @@ export default function LandingPage(props: LandingPageProps = {}) {
         // Provide more specific error messages
         if (err.name === 'TypeError' && err.message.includes('fetch')) {
           setError('Network error: Cannot connect to backend server. Please ensure the backend is running on localhost:3001')
+        } else if (err.message?.includes('timeout') || err.message?.includes('Timeout') || err.code === 'ECONNABORTED') {
+          setError('Request timed out. The server is taking too long to respond. Please try again or check if the backend is processing the request.')
         } else if (err.response) {
           // Server responded with error status
           const status = err.response.status;
@@ -91,11 +113,11 @@ export default function LandingPage(props: LandingPageProps = {}) {
           // Request was made but no response received
           console.error('📡 No response received:', err.request);
           setError('No response from server. Please check if the backend is running on localhost:3001')
-        } else if (err.message.includes('CORS')) {
+        } else if (err.message?.includes('CORS')) {
           setError('CORS error: Please check if the backend allows requests from localhost:3000')
         } else {
           // Something else happened
-          setError(`Connection error: ${err.message}. Please check your network connection.`)
+          setError(`Connection error: ${err.message || 'Unknown error'}. Please check your network connection.`)
         }
       } finally {
         setIsLoading(false)
@@ -184,9 +206,9 @@ export default function LandingPage(props: LandingPageProps = {}) {
                 </div>
                 <button 
                   type="submit" 
-                  disabled={isLoading || !selectedQuery.trim()} 
+                  disabled={isLoading || !query.trim()} 
                   className="landing-submit-button"
-                  title={!selectedQuery.trim() ? 'Please select a search result first' : 'Analyze selected place'}
+                  title={!query.trim() ? 'Please enter a place name' : 'Analyze place'}
                 >
                   {isLoading ? (
                     <>
