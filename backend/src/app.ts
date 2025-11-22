@@ -2,6 +2,7 @@ import express from 'express';
 import cors from 'cors';
 import dotenv from 'dotenv';
 import reviewRoutes from './routes/reviewRoutes';
+import authRoutes from './routes/authRoutes';
 
 dotenv.config();
 
@@ -16,7 +17,13 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 
 
+// Health check
+app.get('/health', (req, res) => {
+  res.json({ status: 'ok', timestamp: new Date().toISOString() });
+});
+
 // Routes
+app.use('/api/auth', authRoutes);
 app.use('/api/reviews', reviewRoutes);
 
 

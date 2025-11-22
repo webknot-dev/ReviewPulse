@@ -2,12 +2,11 @@ import { Router } from 'express';
 import {
   fetchReviews,
 } from '../controllers/reviewController';
+import { authenticate } from '../middleware/auth';
 
 const router = Router();
 
-router.get('/fetch', fetchReviews);
-// router.post('/process', processReviews);
-// router.get('/insights/:placeId', getInsights);
+router.get('/fetch', authenticate, fetchReviews);
 
 export default router;
 

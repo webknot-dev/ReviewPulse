@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { tokenStorage } from './auth';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:3001';
 
@@ -17,9 +18,15 @@ const api = axios.create({
   withCredentials: true, // Include credentials for CORS
 });
 
-// Add request interceptor for debugging
+// Add request interceptor for auth token and debugging
 api.interceptors.request.use(
   (config) => {
+    // Add auth token to requests
+    const token = tokenStorage.get();
+    if (token) {
+      config.headers.Authorization = `Bearer ${token}`;
+    }
+    
     console.log('🚀 Making request:', {
       method: config.method?.toUpperCase(),
       url: config.url,
@@ -143,11 +150,18 @@ export const reviewAPI = {
       const url = `${API_URL}/api/reviews/fetch?place=${encodeURIComponent(place)}`;
       console.log('🧪 Fetch URL:', url);
       
+      const token = tokenStorage.get();
+      const headers: HeadersInit = {
+        'Content-Type': 'application/json',
+      };
+      
+      if (token) {
+        headers['Authorization'] = `Bearer ${token}`;
+      }
+      
       const response = await fetch(url, {
         method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
+        headers,
         credentials: 'include'
       });
       
@@ -159,7 +173,10 @@ export const reviewAPI = {
       });
       
       if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        const errorData = await response.json().catch(() => ({ error: response.statusText }));
+        const error = new Error(`HTTP ${response.status}: ${response.statusText}`);
+        (error as any).response = { status: response.status, data: errorData };
+        throw error;
       }
       
       const data = await response.json();

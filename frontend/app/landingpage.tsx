@@ -4,6 +4,8 @@ import { useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { TrendingUp, Search, Loader2, Brain, Clock, BarChart3 } from 'lucide-react'
 import { reviewAPI } from '@/lib/api'
+import { LoginButton } from '@/components/LoginButton'
+import { useAuth } from '@/app/providers/AuthProvider'
 import './landingpage.css'
 
 const highlightCards = [
@@ -43,6 +45,7 @@ export default function LandingPage(props: LandingPageProps = {}) {
   const [isLoading, setIsLoading] = useState(false)
   const [error, setError] = useState<string>('')
   const router = useRouter()
+  const { isAuthenticated } = useAuth()
 
   const handleSubmit = async (event: React.FormEvent<HTMLFormElement>) => {
     event.preventDefault()
@@ -86,13 +89,19 @@ export default function LandingPage(props: LandingPageProps = {}) {
           // Server responded with error status
           const status = err.response.status;
           const message = err.response.data?.message || err.response.statusText;
-          setError(`Server error (${status}): ${message}`)
+          if (status === 401) {
+            setError('Authentication required. Please sign in with Google to analyze reviews.')
+          } else {
+            setError(`Server error (${status}): ${message}`)
+          }
         } else if (err.request) {
           // Request was made but no response received
           console.error('📡 No response received:', err.request);
           setError('No response from server. Please check if the backend is running on localhost:3001')
         } else if (err.message.includes('CORS')) {
           setError('CORS error: Please check if the backend allows requests from localhost:3000')
+        } else if (err.message && err.message.includes('401')) {
+          setError('Authentication required. Please sign in with Google to analyze reviews.')
         } else {
           // Something else happened
           setError(`Connection error: ${err.message}. Please check your network connection.`)
@@ -132,6 +141,20 @@ export default function LandingPage(props: LandingPageProps = {}) {
 
   return (
     <div className="landing-container">
+      {/* Header with Login Button */}
+      <div style={{ 
+        position: 'fixed', 
+        top: 0, 
+        right: 0, 
+        padding: '1rem', 
+        zIndex: 1000,
+        backgroundColor: 'white',
+        boxShadow: '0 2px 4px rgba(0,0,0,0.1)',
+        borderRadius: '0 0 0 8px'
+      }}>
+        <LoginButton />
+      </div>
+      
       <div className="landing-content">
         <div className="landing-header">
           <div className="landing-badge">
@@ -225,6 +248,11 @@ export default function LandingPage(props: LandingPageProps = {}) {
             {error && (
               <div className="landing-error">
                 <p className="landing-error-text">{error}</p>
+                {error.includes('Authentication required') && !isAuthenticated && (
+                  <p style={{ marginTop: '0.5rem', textAlign: 'center', fontSize: '0.9rem' }}>
+                    Please sign in using the button in the top right corner.
+                  </p>
+                )}
               </div>
             )}
 
