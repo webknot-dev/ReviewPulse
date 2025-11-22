@@ -305,9 +305,9 @@ export default function EducationalInstitutionAnalytics({
                     </div>
                   ) : (
                     <p style={{ color: '#a1a1aa', fontSize: '0.875rem', lineHeight: 1.6 }}>
-                      {data.attributes_analyzed['top recommended teachers'] || 
-                       data.attributes_analyzed['appreciated staffs'] || 
-                       data.attributes_analyzed['top recommended teacher']}
+                      {data?.attributes_analyzed['top recommended teachers'] || 
+                       data?.attributes_analyzed['appreciated staffs'] || 
+                       data?.attributes_analyzed['top recommended teacher']}
                     </p>
                   )}
                 </div>
@@ -349,7 +349,7 @@ export default function EducationalInstitutionAnalytics({
                     </>
                   ) : (
                     <p style={{ color: '#a1a1aa', fontSize: '0.875rem', lineHeight: 1.6 }}>
-                      {data.attributes_analyzed['quality of teaching'] || data.attributes_analyzed['teaching quality']}
+                      {data?.attributes_analyzed['quality of teaching'] || data?.attributes_analyzed['teaching quality']}
                     </p>
                   )}
                 </div>
@@ -382,9 +382,9 @@ export default function EducationalInstitutionAnalytics({
                     </>
                   ) : (
                     <p style={{ color: '#a1a1aa', fontSize: '0.875rem', lineHeight: 1.6 }}>
-                      {data.attributes_analyzed['overall quality'] || 
-                       data.attributes_analyzed['campus quality'] || 
-                       data.attributes_analyzed['infrastructure quality']}
+                      {data?.attributes_analyzed['overall quality'] || 
+                       data?.attributes_analyzed['campus quality'] || 
+                       data?.attributes_analyzed['infrastructure quality']}
                     </p>
                   )}
                 </div>
@@ -411,14 +411,14 @@ export default function EducationalInstitutionAnalytics({
                     </>
                   ) : (
                     <p style={{ color: '#a1a1aa', fontSize: '0.875rem', lineHeight: 1.6 }}>
-                      {data.attributes_analyzed['student quality'] || data.attributes_analyzed['student support']}
+                      {data?.attributes_analyzed['student quality'] || data?.attributes_analyzed['student support']}
                     </p>
                   )}
                 </div>
               )}
 
               {/* Show any other attributes dynamically */}
-              {hasData && !isTemplateMode && Object.entries(data.attributes_analyzed).map(([key, value]) => {
+              {hasData && !isTemplateMode && data && Object.entries(data.attributes_analyzed).map(([key, value]) => {
                 // Skip already shown attributes
                 const shownKeys = ['top recommended teachers', 'appreciated staffs', 'top recommended teacher', 
                                   'quality of teaching', 'teaching quality', 'overall quality', 'campus quality', 
