@@ -4,11 +4,18 @@ import LandingPage from './landingpage'
 import AnalyticsPage from './analyticspage'
 import RestaurantAnalytics from './restaurant-analytics'
 import HotelsAccommodationAnalytics from './hotels-accommodation-analytics'
+import EducationalInstitutionAnalytics from './educational-institution-analytics'
+import RetailShoppingAnalytics from './retail-shopping-analytics'
+import HealthMedicalAnalytics from './health-medical-analytics'
+import FinancialServicesAnalytics from './financial-services-analytics'
+import VenueAnalytics from './venue-analytics'
+import ServiceCenterAnalytics from './service-center-analytics'
+import OtherAnalytics from './otheranalytics'
 import { useState } from 'react'
 import './page.css'
 
 export default function MainPage() {
-  const [currentPage, setCurrentPage] = useState<'landing' | 'analytics' | 'restaurant' | 'hotel'>('landing')
+  const [currentPage, setCurrentPage] = useState<'landing' | 'analytics' | 'restaurant' | 'hotel' | 'education' | 'retail' | 'health' | 'financial' | 'venue' | 'service-center'>('landing')
   const [analyticsPlaceId, setAnalyticsPlaceId] = useState<string>('')
 
   const navigateToAnalytics = (placeId: string) => {
@@ -17,6 +24,12 @@ export default function MainPage() {
     // Check if it's a restaurant/cafe to show restaurant analytics
     const restaurantKeywords = ['restaurant', 'cafe', 'coffee', 'bar', 'bistro', 'diner', 'eatery', 'food']
     const hotelKeywords = ['hotel', 'resort', 'inn', 'lodge', 'motel', 'accommodation', 'hostel', 'suite']
+    const educationKeywords = ['school', 'university', 'college', 'academy', 'institute', 'education', 'learning', 'campus']
+    const retailKeywords = ['store', 'shop', 'retail', 'mall', 'outlet', 'market', 'boutique', 'shopping']
+    const healthKeywords = ['hospital', 'clinic', 'medical', 'health', 'doctor', 'physician', 'healthcare', 'pharmacy', 'diagnosis']
+    const financialKeywords = ['bank', 'financial', 'loan', 'credit', 'mortgage', 'investment', 'banking', 'finance', 'atm', 'branch']
+    const venueKeywords = ['venue', 'event', 'amusement', 'park', 'theme', 'entertainment', 'stadium', 'arena', 'theater', 'cinema', 'concert', 'hall']
+    const serviceCenterKeywords = ['service center', 'service center', 'auto', 'mechanic', 'garage', 'repair', 'maintenance', 'service', 'automotive', 'car service', 'auto repair']
     
     const isRestaurant = restaurantKeywords.some(keyword => 
       placeId.toLowerCase().includes(keyword)
@@ -24,11 +37,41 @@ export default function MainPage() {
     const isHotel = hotelKeywords.some(keyword => 
       placeId.toLowerCase().includes(keyword)
     )
+    const isEducation = educationKeywords.some(keyword => 
+      placeId.toLowerCase().includes(keyword)
+    )
+    const isRetail = retailKeywords.some(keyword => 
+      placeId.toLowerCase().includes(keyword)
+    )
+    const isHealth = healthKeywords.some(keyword => 
+      placeId.toLowerCase().includes(keyword)
+    )
+    const isFinancial = financialKeywords.some(keyword => 
+      placeId.toLowerCase().includes(keyword)
+    )
+    const isVenue = venueKeywords.some(keyword => 
+      placeId.toLowerCase().includes(keyword)
+    )
+    const isServiceCenter = serviceCenterKeywords.some(keyword => 
+      placeId.toLowerCase().includes(keyword)
+    )
     
     if (isRestaurant) {
       setCurrentPage('restaurant')
     } else if (isHotel) {
       setCurrentPage('hotel')
+    } else if (isEducation) {
+      setCurrentPage('education')
+    } else if (isRetail) {
+      setCurrentPage('retail')
+    } else if (isHealth) {
+      setCurrentPage('health')
+    } else if (isFinancial) {
+      setCurrentPage('financial')
+    } else if (isVenue) {
+      setCurrentPage('venue')
+    } else if (isServiceCenter) {
+      setCurrentPage('service-center')
     } else {
       setCurrentPage('analytics')
     }
@@ -53,6 +96,66 @@ export default function MainPage() {
     return (
       <HotelsAccommodationAnalytics 
         hotelName={analyticsPlaceId || 'Grand Hotel'} 
+        onNavigateBack={navigateToLanding}
+      />
+    )
+  }
+
+  // If we're on education analytics page
+  if (currentPage === 'education') {
+    return (
+      <EducationalInstitutionAnalytics 
+        institutionName={analyticsPlaceId || 'Edutech Analytics'} 
+        onNavigateBack={navigateToLanding}
+      />
+    )
+  }
+
+  // If we're on retail analytics page
+  if (currentPage === 'retail') {
+    return (
+      <RetailShoppingAnalytics 
+        storeName={analyticsPlaceId || 'Retail Insights'} 
+        onNavigateBack={navigateToLanding}
+      />
+    )
+  }
+
+  // If we're on health analytics page
+  if (currentPage === 'health') {
+    return (
+      <HealthMedicalAnalytics 
+        institutionName={analyticsPlaceId || 'Review Insights'} 
+        onNavigateBack={navigateToLanding}
+      />
+    )
+  }
+
+  // If we're on financial analytics page
+  if (currentPage === 'financial') {
+    return (
+      <FinancialServicesAnalytics 
+        institutionName={analyticsPlaceId || 'Review Insights'} 
+        onNavigateBack={navigateToLanding}
+      />
+    )
+  }
+
+  // If we're on venue analytics page
+  if (currentPage === 'venue') {
+    return (
+      <VenueAnalytics 
+        venueName={analyticsPlaceId || 'Venue Analytics'} 
+        onNavigateBack={navigateToLanding}
+      />
+    )
+  }
+
+  // If we're on service center analytics page
+  if (currentPage === 'service-center') {
+    return (
+      <ServiceCenterAnalytics 
+        centerName={analyticsPlaceId || 'Service Center'} 
         onNavigateBack={navigateToLanding}
       />
     )
