@@ -17,11 +17,36 @@ import './page.css'
 export default function MainPage() {
   const [currentPage, setCurrentPage] = useState<'landing' | 'analytics' | 'restaurant' | 'hotel' | 'education' | 'retail' | 'health' | 'financial' | 'venue' | 'service-center'>('landing')
   const [analyticsPlaceId, setAnalyticsPlaceId] = useState<string>('')
+  const [apiResponseData, setApiResponseData] = useState<any>(null)
 
-  const navigateToAnalytics = (placeId: string) => {
+  const navigateToAnalytics = (placeId: string, category?: string, apiData?: any) => {
     setAnalyticsPlaceId(placeId)
+    if (apiData) {
+      setApiResponseData(apiData)
+    }
     
-    // Check if it's a restaurant/cafe to show restaurant analytics
+    // If category is provided from API response, use it directly
+    if (category) {
+      const categoryMap: Record<string, 'restaurant' | 'hotel' | 'education' | 'retail' | 'health' | 'financial' | 'venue' | 'service-center' | 'analytics'> = {
+        'restaurant': 'restaurant',
+        'hotel': 'hotel',
+        'education': 'education',
+        'retail': 'retail',
+        'health': 'health',
+        'financial': 'financial',
+        'venue': 'venue',
+        'service-center': 'service-center',
+        'service_center': 'service-center',
+      }
+      
+      const mappedCategory = categoryMap[category.toLowerCase()]
+      if (mappedCategory) {
+        setCurrentPage(mappedCategory)
+        return
+      }
+    }
+    
+    // Fallback to keyword matching if no category provided
     const restaurantKeywords = ['restaurant', 'cafe', 'coffee', 'bar', 'bistro', 'diner', 'eatery', 'food']
     const hotelKeywords = ['hotel', 'resort', 'inn', 'lodge', 'motel', 'accommodation', 'hostel', 'suite']
     const educationKeywords = ['school', 'university', 'college', 'academy', 'institute', 'education', 'learning', 'campus']
@@ -83,10 +108,16 @@ export default function MainPage() {
 
   // If we're on restaurant analytics page
   if (currentPage === 'restaurant') {
+    // Log API response data for debugging
+    console.log('🍽️ Page.tsx - Full API Response Data:', apiResponseData)
+    
+    // Pass the full API response - the component will extract from placeData
+    // This allows the component to handle the actual API structure
     return (
       <RestaurantAnalytics 
-        restaurantName={analyticsPlaceId || 'Flavorlytics'} 
+        restaurantName={apiResponseData?.placeData?.place_name || analyticsPlaceId || 'Flavorlytics'} 
         onNavigateBack={navigateToLanding}
+        apiData={apiResponseData}
       />
     )
   }

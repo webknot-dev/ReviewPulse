@@ -32,7 +32,7 @@ const highlightCards = [
 
 
 interface LandingPageProps {
-  onNavigateToAnalytics?: (placeId: string) => void
+  onNavigateToAnalytics?: (placeId: string, category?: string, apiData?: any) => void
 }
 
 export default function LandingPage(props: LandingPageProps = {}) {
@@ -63,12 +63,24 @@ export default function LandingPage(props: LandingPageProps = {}) {
         const response = testResponse;
         
         console.log('📋 API Response:', response);
+        console.log('📋 API Response Keys:', Object.keys(response || {}));
+        console.log('📋 API Response.rating:', response?.rating);
+        console.log('📋 API Response.total_reviews:', response?.total_reviews);
+        console.log('📋 API Response.pos_reviews:', response?.pos_reviews);
+        console.log('📋 API Response.neg_reviews:', response?.neg_reviews);
+        console.log('📋 API Response.data:', response?.data);
         
         if (response && response.success) {
           console.log('✅ Success! Navigating to analytics...');
-          // Navigate to analytics with the selected place
+          
+          // Extract category from API response if available
+          const category = response.category || response.data?.category || response.place?.category
+          console.log('🏷️ Category from API:', category);
+          console.log('📊 Full API Response Data being passed:', JSON.stringify(response, null, 2));
+          
+          // Navigate to analytics with the selected place, category, and full API response data
           if (onNavigateToAnalytics) {
-            onNavigateToAnalytics(selectedQuery)
+            onNavigateToAnalytics(selectedQuery, category, response)
           } else {
             router.push(`/dashboard/${encodeURIComponent(selectedQuery)}`)
           }
