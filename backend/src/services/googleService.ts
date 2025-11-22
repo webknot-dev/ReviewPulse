@@ -1,4 +1,6 @@
 import axios from 'axios';
+require('dotenv').config();
+
 
 export interface GoogleReview {
   author_name: string;

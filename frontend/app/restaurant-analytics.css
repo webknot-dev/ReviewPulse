@@ -1,0 +1,919 @@
+/* Restaurant Analytics Dark Theme */
+.restaurant-analytics-container {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #1e1b4b 0%, #312e81 50%, #1e1b4b 100%);
+  color: #ffffff;
+  padding: 2rem;
+}
+
+.restaurant-analytics-content {
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+/* Header Section */
+.restaurant-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+}
+
+.restaurant-header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.restaurant-logo {
+  width: 3rem;
+  height: 3rem;
+  background: linear-gradient(135deg, #f97316 0%, #ea580c 100%);
+  border-radius: 0.75rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-weight: bold;
+  font-size: 1.25rem;
+  color: white;
+}
+
+.restaurant-title-section {
+  display: flex;
+  flex-direction: column;
+}
+
+.restaurant-title {
+  font-size: 2rem;
+  font-weight: 700;
+  margin: 0;
+  color: #ffffff;
+}
+
+.restaurant-subtitle {
+  font-size: 1rem;
+  color: #a1a1aa;
+  margin: 0.25rem 0 0 0;
+}
+
+.restaurant-header-right {
+  display: flex;
+  align-items: center;
+}
+
+.export-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.export-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(139, 92, 246, 0.3);
+}
+
+.export-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+}
+
+/* Time Period Section */
+.time-period-section {
+  display: flex;
+  align-items: center;
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  transition: all 0.3s ease;
+}
+
+.time-period-section:hover {
+  background: rgba(255, 255, 255, 0.08);
+  transform: translateY(-2px);
+  box-shadow: 0 10px 40px rgba(139, 92, 246, 0.2);
+}
+
+.time-period-label {
+  font-size: 1rem;
+  font-weight: 600;
+  color: #ffffff;
+  white-space: nowrap;
+}
+
+.time-period-buttons {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.time-period-button {
+  padding: 0.5rem 1rem;
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  background: rgba(255, 255, 255, 0.1);
+  color: #d1d5db;
+  cursor: pointer;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.time-period-button::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.2), transparent);
+  transition: left 0.5s ease;
+}
+
+.time-period-button:hover::before {
+  left: 100%;
+}
+
+.time-period-button:hover {
+  background: rgba(255, 255, 255, 0.15);
+  color: #ffffff;
+  transform: translateY(-2px);
+  box-shadow: 0 5px 15px rgba(255, 255, 255, 0.1);
+}
+
+.time-period-button.active {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  color: #ffffff;
+  border-color: #8b5cf6;
+  box-shadow: 0 5px 20px rgba(139, 92, 246, 0.4);
+}
+
+/* Metrics Row */
+.metrics-row {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+@media (max-width: 1024px) {
+  .metrics-row {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .metrics-row {
+    grid-template-columns: 1fr;
+  }
+}
+
+.metric-card {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.metric-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(124, 58, 237, 0.1) 100%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.metric-card:hover::before {
+  opacity: 1;
+}
+
+.metric-card:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-8px) scale(1.02);
+  box-shadow: 0 20px 60px rgba(139, 92, 246, 0.3);
+  border-color: rgba(139, 92, 246, 0.4);
+}
+
+.metric-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Individual metric card hover effects */
+.reviews-card:hover {
+  box-shadow: 0 20px 60px rgba(34, 197, 94, 0.3);
+  border-color: rgba(34, 197, 94, 0.4);
+}
+
+.rating-card:hover {
+  box-shadow: 0 20px 60px rgba(251, 191, 36, 0.3);
+  border-color: rgba(251, 191, 36, 0.4);
+}
+
+.waiting-card:hover {
+  box-shadow: 0 20px 60px rgba(239, 68, 68, 0.3);
+  border-color: rgba(239, 68, 68, 0.4);
+}
+
+.price-card:hover {
+  box-shadow: 0 20px 60px rgba(139, 92, 246, 0.3);
+  border-color: rgba(139, 92, 246, 0.4);
+}
+
+.metric-label {
+  font-size: 0.875rem;
+  color: #a1a1aa;
+  font-weight: 500;
+  margin-bottom: 0.75rem;
+  display: block;
+}
+
+.metric-value-with-star {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.5rem;
+}
+
+.rating-star {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: #fbbf24;
+  fill: #fbbf24;
+  transition: all 0.3s ease;
+}
+
+.rating-card:hover .rating-star {
+  transform: rotate(360deg) scale(1.2);
+  filter: drop-shadow(0 0 10px #fbbf24);
+}
+
+.metric-value {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin-bottom: 0.5rem;
+}
+
+.metric-trend {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.trend-icon {
+  width: 1rem;
+  height: 1rem;
+}
+
+.trend-icon.up {
+  color: #10b981;
+}
+
+.trend-icon.down {
+  color: #ef4444;
+}
+
+.trend-text {
+  font-size: 0.75rem;
+  color: #a1a1aa;
+}
+
+/* Content Grid */
+.content-grid {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 1.5rem;
+}
+
+@media (max-width: 1024px) {
+  .content-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+}
+
+@media (max-width: 768px) {
+  .content-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Staff Card */
+.staff-card {
+  grid-row: span 1;
+}
+
+.staff-profile {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+/* Service Card */
+.service-card {
+  grid-column: span 2;
+}
+
+@media (max-width: 1024px) {
+  .service-card {
+    grid-column: span 1;
+  }
+}
+
+/* Ambiance Card */
+.ambiance-card {
+  grid-row: span 2;
+}
+
+@media (max-width: 1024px) {
+  .ambiance-card {
+    grid-row: span 1;
+  }
+}
+
+.ambiance-bar-container {
+  margin: 1.5rem 0;
+}
+
+.ambiance-bar-main {
+  display: flex;
+  height: 1rem;
+  border-radius: 0.5rem;
+  overflow: hidden;
+  margin-bottom: 0.75rem;
+  transition: all 0.3s ease;
+}
+
+.ambiance-card:hover .ambiance-bar-main {
+  transform: scale(1.05);
+  box-shadow: 0 5px 20px rgba(139, 92, 246, 0.3);
+}
+
+.ambiance-segment {
+  height: 100%;
+  transition: all 0.3s ease;
+}
+
+.ambiance-segment.excellent {
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+}
+
+.ambiance-segment.medium {
+  background: linear-gradient(135deg, #f59e0b 0%, #d97706 100%);
+}
+
+.ambiance-segment.poor {
+  background: linear-gradient(135deg, #ef4444 0%, #dc2626 100%);
+}
+
+.ambiance-percentages {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+}
+
+.percentage {
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: all 0.3s ease;
+}
+
+.ambiance-card:hover .percentage {
+  transform: scale(1.1);
+}
+
+.percentage.excellent {
+  color: #8b5cf6;
+}
+
+.percentage.medium {
+  color: #f59e0b;
+}
+
+.percentage.poor {
+  color: #ef4444;
+}
+
+.ambiance-legend {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.legend-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.875rem;
+  color: #d1d5db;
+  transition: all 0.3s ease;
+}
+
+.legend-item:hover {
+  color: #ffffff;
+  transform: translateX(5px);
+}
+
+.legend-dot {
+  width: 0.75rem;
+  height: 0.75rem;
+  border-radius: 50%;
+  transition: all 0.3s ease;
+}
+
+.legend-item:hover .legend-dot {
+  transform: scale(1.3);
+  box-shadow: 0 0 10px currentColor;
+}
+
+.legend-dot.excellent {
+  background: #8b5cf6;
+}
+
+.legend-dot.medium {
+  background: #f59e0b;
+}
+
+.legend-dot.poor {
+  background: #ef4444;
+}
+
+/* Restaurant Information Card */
+.restaurant-info-card {
+  grid-row: span 1;
+}
+
+.restaurant-details {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.detail-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  transition: all 0.3s ease;
+}
+
+.detail-item:hover {
+  transform: translateX(10px);
+}
+
+.detail-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  color: #8b5cf6;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+  transition: all 0.3s ease;
+}
+
+.detail-item:hover .detail-icon {
+  color: #7c3aed;
+  transform: scale(1.2) rotate(10deg);
+}
+
+.detail-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  flex: 1;
+}
+
+.detail-label {
+  font-size: 0.75rem;
+  color: #a1a1aa;
+  font-weight: 500;
+}
+
+.detail-value {
+  font-size: 0.875rem;
+  color: #ffffff;
+  font-weight: 500;
+  line-height: 1.4;
+  transition: all 0.3s ease;
+}
+
+.detail-item:hover .detail-value {
+  color: #8b5cf6;
+}
+
+/* Dishes Card */
+.dishes-card {
+  grid-row: span 1;
+}
+
+.dish-item {
+  transition: all 0.3s ease;
+  padding: 0.5rem;
+  border-radius: 0.5rem;
+}
+
+.dish-item:hover {
+  background: rgba(255, 255, 255, 0.05);
+  transform: translateX(10px);
+}
+
+.dish-rank {
+  transition: all 0.3s ease;
+}
+
+.dish-item:hover .dish-rank {
+  transform: scale(1.2) rotate(360deg);
+  box-shadow: 0 0 15px rgba(139, 92, 246, 0.5);
+}
+
+.content-card {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(10px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 1rem;
+  padding: 1.5rem;
+  transition: all 0.4s cubic-bezier(0.4, 0, 0.2, 1);
+  position: relative;
+  overflow: hidden;
+}
+
+.content-card::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(135deg, rgba(139, 92, 246, 0.1) 0%, rgba(124, 58, 237, 0.1) 100%);
+  opacity: 0;
+  transition: opacity 0.4s ease;
+}
+
+.content-card::after {
+  content: '';
+  position: absolute;
+  top: -50%;
+  left: -50%;
+  width: 200%;
+  height: 200%;
+  background: linear-gradient(45deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transform: rotate(45deg);
+  transition: all 0.6s ease;
+  opacity: 0;
+}
+
+.content-card:hover::before {
+  opacity: 1;
+}
+
+.content-card:hover::after {
+  opacity: 1;
+  transform: rotate(45deg) translate(50%, 50%);
+}
+
+.content-card:hover {
+  background: rgba(255, 255, 255, 0.1);
+  transform: translateY(-10px) scale(1.02);
+  box-shadow: 0 25px 80px rgba(139, 92, 246, 0.3);
+  border-color: rgba(139, 92, 246, 0.4);
+}
+
+.content-card > * {
+  position: relative;
+  z-index: 1;
+}
+
+/* Specific card hover effects */
+.staff-card:hover {
+  box-shadow: 0 25px 80px rgba(34, 197, 94, 0.3);
+  border-color: rgba(34, 197, 94, 0.4);
+}
+
+.service-card:hover {
+  box-shadow: 0 25px 80px rgba(59, 130, 246, 0.3);
+  border-color: rgba(59, 130, 246, 0.4);
+}
+
+.ambiance-card:hover {
+  box-shadow: 0 25px 80px rgba(139, 92, 246, 0.3);
+  border-color: rgba(139, 92, 246, 0.4);
+}
+
+.restaurant-info-card:hover {
+  box-shadow: 0 25px 80px rgba(245, 158, 11, 0.3);
+  border-color: rgba(245, 158, 11, 0.4);
+}
+
+.dishes-card:hover {
+  box-shadow: 0 25px 80px rgba(236, 72, 153, 0.3);
+  border-color: rgba(236, 72, 153, 0.4);
+}
+
+.card-title {
+  font-size: 1.125rem;
+  font-weight: 600;
+  color: #ffffff;
+  margin: 0 0 1.5rem 0;
+}
+
+/* Dishes List */
+.dishes-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.dish-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.dish-rank {
+  width: 1.5rem;
+  height: 1.5rem;
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  border-radius: 50%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: white;
+  flex-shrink: 0;
+}
+
+.dish-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.dish-name {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #ffffff;
+}
+
+.dish-mentions {
+  font-size: 0.75rem;
+  color: #a1a1aa;
+}
+
+/* Service Card */
+.service-card {
+  grid-column: span 2;
+}
+
+@media (max-width: 1024px) {
+  .service-card {
+    grid-column: span 1;
+  }
+}
+
+.service-summary {
+  font-size: 0.9375rem;
+  color: #d1d5db;
+  line-height: 1.6;
+  margin-bottom: 1.5rem;
+}
+
+.service-quotes {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.service-quote {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  border-radius: 0.75rem;
+  transition: all 0.3s ease;
+  position: relative;
+  overflow: hidden;
+}
+
+.service-quote::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: -100%;
+  width: 100%;
+  height: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.1), transparent);
+  transition: left 0.6s ease;
+}
+
+.service-quote:hover::before {
+  left: 100%;
+}
+
+.service-quote:hover {
+  transform: translateX(10px) scale(1.02);
+}
+
+.service-quote.positive {
+  background: rgba(16, 185, 129, 0.1);
+  border: 1px solid rgba(16, 185, 129, 0.2);
+}
+
+.service-quote.warning {
+  background: rgba(245, 158, 11, 0.1);
+  border: 1px solid rgba(245, 158, 11, 0.2);
+}
+
+.quote-icon {
+  width: 1.25rem;
+  height: 1.25rem;
+  flex-shrink: 0;
+  margin-top: 0.125rem;
+  transition: all 0.3s ease;
+}
+
+.service-quote:hover .quote-icon {
+  transform: scale(1.2) rotate(10deg);
+}
+
+.quote-icon.positive {
+  color: #10b981;
+}
+
+.quote-icon.warning {
+  color: #f59e0b;
+}
+
+.quote-icon.negative {
+  color: #ef4444;
+}
+
+.quote-text {
+  font-size: 0.875rem;
+  color: #e5e7eb;
+  line-height: 1.5;
+}
+
+/* Staff List */
+.staff-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.staff-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.staff-avatar {
+  width: 2.5rem;
+  height: 2.5rem;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.25rem;
+  flex-shrink: 0;
+  transition: all 0.4s ease;
+  position: relative;
+}
+
+.staff-avatar::before {
+  content: '';
+  position: absolute;
+  top: -2px;
+  left: -2px;
+  right: -2px;
+  bottom: -2px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #8b5cf6, #7c3aed, #8b5cf6);
+  opacity: 0;
+  transition: all 0.4s ease;
+  z-index: -1;
+}
+
+.staff-card:hover .staff-avatar {
+  transform: scale(1.2) rotate(10deg);
+  box-shadow: 0 10px 30px rgba(139, 92, 246, 0.5);
+}
+
+.staff-card:hover .staff-avatar::before {
+  opacity: 1;
+  animation: rotate 2s linear infinite;
+}
+
+@keyframes rotate {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+.staff-info {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.staff-name {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #ffffff;
+}
+
+.staff-mentions {
+  font-size: 0.75rem;
+  color: #a1a1aa;
+}
+
+/* Ambiance Card */
+.ambiance-card {
+  grid-row: span 2;
+}
+
+@media (max-width: 1024px) {
+  .ambiance-card {
+    grid-row: span 1;
+  }
+}
+
+.ambiance-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1.5rem;
+}
+
+.ambiance-item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.ambiance-info {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+}
+
+.ambiance-category {
+  font-size: 0.9375rem;
+  font-weight: 500;
+  color: #ffffff;
+}
+
+.ambiance-percentage {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #a1a1aa;
+}
+
+.ambiance-bar {
+  width: 100%;
+  height: 0.5rem;
+  background: rgba(255, 255, 255, 0.1);
+  border-radius: 0.25rem;
+  overflow: hidden;
+}
+
+.ambiance-fill {
+  height: 100%;
+  border-radius: 0.25rem;
+  transition: width 0.3s ease;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .restaurant-analytics-container {
+    padding: 1rem;
+  }
+  
+  .restaurant-header {
+    flex-direction: column;
+    gap: 1rem;
+    align-items: flex-start;
+  }
+  
+  .restaurant-title {
+    font-size: 1.5rem;
+  }
+}
