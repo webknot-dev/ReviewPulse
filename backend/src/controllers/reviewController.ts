@@ -1,6 +1,6 @@
 import { Request, Response } from 'express';
 
-import { fetchPlaceDetails } from '../services/googleService';
+import {fetchPlaceDetails, GoogleReview} from '../services/googleService';
 import {
   analyzeSentiment,
 } from '../services/aiService';
@@ -20,8 +20,29 @@ export const fetchReviews = async (req: Request, res: Response): Promise<void> =
 
     // Fetch place details and reviews
     const placeData = await fetchPlaceDetails(<string>placeId);
-    const analysedReviewData = await analyzeSentiment(placeData);
+    if (!placeData || placeData.reviews?.length === 0) {
+        res.status(400).json({ error: 'reviews not found' });
+    }
 
+    let oneWeekBack = new Date().getTime() - (7*24*60*60*1000);
+    let oneMonthBack = new Date().getTime() - (30*24*60*60*1000);
+    let oneYearBack = new Date().getTime() - (365*24*60*60*1000);
+
+    let filteredReviews: GoogleReview[] | any = placeData.reviews
+    if (dateRange != null && dateRange !== '' && dateRange !== 'all') {
+        switch (dateRange) {
+            case 'Week':
+                filteredReviews = filteredReviews?.forEach((i: { time: number; }) => i.time > oneWeekBack)
+                break;
+            case 'Month':
+                filteredReviews = filteredReviews?.forEach((i: { time: number; }) => i.time > oneMonthBack)
+                break;
+            case 'Year':
+                filteredReviews = filteredReviews?.forEach((i: { time: number; }) => i.time > oneYearBack)
+        }
+    }
+
+    let analysedReviewData = await analyzeSentiment(placeData);
 
     res.json({
       success: true,
