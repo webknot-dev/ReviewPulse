@@ -4,10 +4,18 @@ import { GoogleGenAI } from "@google/genai";
 export interface AnalysedReviewData {
     place_name: string,
     rating?: number,
-    pos_reviews: Array<string>,
-    neg_reviews: Array<string>,
+    pos_reviews: Array<AnalysedReview>,
+    neg_reviews: Array<AnalysedReview>,
     overall_sentiment: string,
     highlights: Array<string>,
+    total_reviews?: number,
+    category: string,
+    attributes_analyzed: {}
+}
+
+export interface AnalysedReview {
+    text: string,
+    mentions: number
 }
 
 const prompt = `You are an AI system that analyzes Google reviews.
@@ -20,14 +28,53 @@ Task:
 3. Find the overall sentiment (positive/negative/neutral).
 4. Give the highlights based on the reviews.
     Eg: This kind of food is famous in this restaurant or this place is famous for this etc..
-5. Return ONLY JSON in the following format:
+5. Add mentions an extra value to each review which will be the number of same kind or closely relatable reviews are there.  
+6. Categorize the type of the place based on any of the below given types: (should be added in the result)
+    a. Restaurants & Cafés
+    Includes: restaurants, cafés, bakeries, fast food, bars, pubs, street food.
+    attributes_analyzed: service quality, most mentioned staff, top dishes, ambience sentiment
+    
+    b. Hotels & Accommodation
+    Includes: hotels, resorts, hostels, homestays, serviced apartments.
+    attributes_analyzed: top appreciated facility, hygiene score, top features
+
+    c. Educational Institutions
+    Includes: schools, colleges, universities, coaching centers, training institutes.
+    attributes_analyzed: overall quality, quality of teaching, top recommended teachers, student quality
+
+    d. Retail & Shopping
+    Includes: supermarkets, clothing stores, malls, electronics shops, furniture stores.
+    attributes_analyzed: most mentioned products, pricing sentiment, staff behaviour, checkout speed, discounts
+
+    e. Healthcare & Medical
+    Includes: hospitals, clinics, dental clinics, diagnostic centers, pharmacies.
+    attributes_analyzed: appreciated staffs, waiting time experience, hygiene, patient care sentiment, diagnosis accuracy
+
+    f. Services & Professional Offices
+    Includes: banks, salons, repair services, gyms, spas, law offices, consultants.
+    attributes_analyzed: most mentioned service teams, service speed, professional skills sentiment, hygiene, pricing fairness, staff friendliness
+
+    g. Entertainment & Recreation
+    Includes: movie theaters, parks, gaming zones, museums, tourist attractions.
+    attributes_analyzed: top movies/activities, audio/video quality, hygiene, parking availability sentiment, ambiance
+
+    h. Transportation & Automotive
+    Includes: petrol pumps, car/bike service centers, metro stations, bus stations, parking areas.
+    attributes_analyzed: service quality mentions, employee praised, parts quality feedback, fuel quality, service time
+    
+    i. Others
+7.  After categorizing analyze the values (using the reviews) for all the attributes under each category based on given records
+    
+8. Return ONLY JSON in the following format:
 
 {
-   "positive": ["..."],
-  "negative": ["..."],
+   "positive": [{text: "...", mentions: 2}],
+  "negative": [{text: "...", mentions: 2}],
   "overall_sentiment": "...",
   "highlights": ["..."],
   "summary": "..."
+  "category": "..." (any of the given types)
+  "attributes_analyzed": {"...": "..."}
 }
 `;
 
@@ -59,6 +106,9 @@ export const analyzeSentiment = async (placeData: GooglePlaceDetails): Promise<A
         neg_reviews: formattedGenAiResponse.negative,
         overall_sentiment: formattedGenAiResponse.overall_sentiment,
         highlights: formattedGenAiResponse.highlights,
+        total_reviews: placeData.reviews?.length,
+        category: formattedGenAiResponse.category,
+        attributes_analyzed: formattedGenAiResponse.attributes_analyzed,
     }
 
 };
@@ -74,4 +124,3 @@ function extractJsonFromGenAiResponse(text:any) {
         throw new Error("Invalid JSON from AI");
     }
 }
-
