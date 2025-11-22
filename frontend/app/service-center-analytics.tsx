@@ -1,8 +1,9 @@
 'use client'
 
-import React, { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { Download, TrendingUp, TrendingDown, Star, MapPin, Phone, Clock, ThumbsUp, ThumbsDown } from 'lucide-react'
+import React, { useState, useEffect } from 'react'
+import { useRouter, useSearchParams } from 'next/navigation'
+import { Download, TrendingUp, TrendingDown, Star, MapPin, Phone, Clock, ThumbsUp, ThumbsDown, Loader2 } from 'lucide-react'
+import { reviewAPI, PlaceDataResponse } from '@/lib/api'
 import './service-center-analytics.css'
 
 interface ServiceCenterAnalyticsProps {
@@ -11,11 +12,49 @@ interface ServiceCenterAnalyticsProps {
 }
 
 export default function ServiceCenterAnalytics({ 
-  centerName = 'Service Center', 
+  centerName: centerNameProp,
   onNavigateBack 
 }: ServiceCenterAnalyticsProps) {
   const router = useRouter()
+  const searchParams = useSearchParams()
+  const placeName = centerNameProp || searchParams.get('place') || undefined
   const [selectedPeriod, setSelectedPeriod] = useState('Weekly')
+  const [loading, setLoading] = useState(false)
+  const [error, setError] = useState<string>('')
+  const [data, setData] = useState<PlaceDataResponse['placeData'] | null>(null)
+
+  useEffect(() => {
+    if (placeName) {
+      fetchData(placeName)
+    }
+  }, [placeName])
+
+  const fetchData = async (place: string) => {
+    setLoading(true)
+    setError('')
+    try {
+      const response = await reviewAPI.fetchAndAnalyze(place)
+      if (response.success) {
+        setData(response.placeData)
+      } else {
+        setError('Failed to fetch data')
+      }
+    } catch (err: any) {
+      setError(err.message || 'Failed to fetch data')
+    } finally {
+      setLoading(false)
+    }
+  }
+
+  const hasAttribute = (key: string): boolean => {
+    if (!data?.attributes_analyzed) return false
+    const value = data.attributes_analyzed[key]
+    return !!value && typeof value === 'string' && value.trim() !== '' && value.toLowerCase() !== 'not enough information from the reviews to analyze'
+  }
+
+  const isTemplateMode = !placeName
+  const hasData = !!data
+  const displayName = data?.place_name || placeName || 'Service Center'
 
   const handleBackNavigation = () => {
     if (onNavigateBack) {
@@ -25,13 +64,40 @@ export default function ServiceCenterAnalytics({
     }
   }
 
-  // Mock data matching the design
-  const metricsData = {
-    totalReviews: { value: '1,204', trend: 'up', change: '+5.2%' },
-    averageRating: { value: '4.7', trend: 'down', change: '-0.1%' }
+  if (loading) {
+    return (
+      <div className="service-center-container">
+        <div className="service-center-content" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
+          <div style={{ textAlign: 'center' }}>
+            <Loader2 className="landing-spinner" style={{ width: '3rem', height: '3rem', margin: '0 auto 1rem', animation: 'spin 1s linear infinite' }} />
+            <p style={{ color: '#ffffff', fontSize: '1.125rem' }}>Loading analytics...</p>
+          </div>
+        </div>
+      </div>
+    )
   }
 
-  const timePeriods = ['Weekly', 'Monthly', 'Yearly', 'All Time']
+  if (error) {
+    return (
+      <div className="service-center-container">
+        <div className="service-center-content" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
+          <div style={{ textAlign: 'center' }}>
+            <p style={{ color: '#ef4444', fontSize: '1.125rem', marginBottom: '1rem' }}>Error: {error}</p>
+            <button onClick={() => placeName && fetchData(placeName)} style={{ padding: '0.75rem 1.5rem', background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)', color: 'white', border: 'none', borderRadius: '0.75rem', cursor: 'pointer', fontWeight: 600 }}>Retry</button>
+          </div>
+        </div>
+      </div>
+    )
+  }
+
+  const metricsData = {
+    totalReviews: { value: hasData && data.total_reviews ? data.total_reviews.toLocaleString() : '1,204', trend: 'up' as const, change: '+5.2%' },
+    averageRating: { value: hasData && data.rating ? data.rating.toFixed(1) : '4.7', trend: 'down' as const, change: '-0.1%' }
+  }
+
+  const timePeriods = hasData && data.possible_filters ? data.possible_filters : ['Weekly', 'Monthly', 'Yearly', 'All Time']
+  const maxPositiveMentions = data?.pos_reviews && data.pos_reviews.length > 0 ? Math.max(...data.pos_reviews.map(r => r.mentions)) : 1
+  const maxNegativeMentions = data?.neg_reviews && data.neg_reviews.length > 0 ? Math.max(...data.neg_reviews.map(r => r.mentions)) : 1
 
   const serviceCenterInfo = {
     address: '123 Auto Lane, Mechanicville, USA 12345',
@@ -119,11 +185,11 @@ export default function ServiceCenterAnalytics({
               <span className="metric-value">{metricsData.averageRating.value}</span>
             </div>
             <div className="stars-display">
-              <Star className="star-icon filled" />
-              <Star className="star-icon filled" />
-              <Star className="star-icon filled" />
-              <Star className="star-icon filled" />
-              <Star className="star-icon partial" />
+              {[1, 2, 3, 4, 5].map((star) => {
+                const rating = hasData && data.rating ? data.rating : 4.7
+                const isFilled = star <= Math.floor(rating)
+                return <Star key={star} className={`star-icon ${isFilled ? 'filled' : ''}`} style={isFilled ? { fill: '#fbbf24', color: '#fbbf24' } : {}} />
+              })}
             </div>
             <div className="metric-trend">
               <TrendingDown className="trend-icon down" />
@@ -132,157 +198,260 @@ export default function ServiceCenterAnalytics({
           </div>
         </div>
 
+        {/* Top Positive and Negative Highlights */}
+        {!isTemplateMode && data && (data.pos_reviews.length > 0 || data.neg_reviews.length > 0) && (
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '2rem', marginBottom: '2rem' }}>
+            {data.pos_reviews.length > 0 && (
+              <div style={{ background: 'rgba(255, 255, 255, 0.05)', borderRadius: '1rem', padding: '2rem', border: '2px solid rgba(16, 185, 129, 0.3)' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', marginBottom: '2rem', paddingBottom: '1.5rem', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                  <ThumbsUp style={{ width: '2.5rem', height: '2.5rem', color: '#10b981', background: 'rgba(16, 185, 129, 0.2)', padding: '0.5rem', borderRadius: '0.75rem' }} />
+                  <div>
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#ffffff', margin: '0 0 0.5rem 0' }}>Top Positive Highlights</h2>
+                    <p style={{ fontSize: '0.875rem', color: '#a1a1aa', margin: 0 }}>What customers appreciate the most</p>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                  {data.pos_reviews.slice(0, 5).map((review, index) => {
+                    const percentage = (review.mentions / maxPositiveMentions) * 100
+                    return (
+                      <div key={index} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '1rem', borderRadius: '0.75rem' }}>
+                        <p style={{ fontSize: '0.9375rem', color: '#ffffff', fontWeight: 500, margin: 0, lineHeight: 1.5 }}>{review.text}</p>
+                        <div style={{ width: '100%', height: '0.5rem', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '0.25rem', overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${percentage}%`, background: 'linear-gradient(90deg, #10b981 0%, #059669 100%)', borderRadius: '0.25rem' }} />
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '0.375rem 0.75rem', borderRadius: '0.5rem', background: 'rgba(16, 185, 129, 0.2)', border: '1px solid rgba(16, 185, 129, 0.4)', color: '#10b981' }}>{review.mentions} mentions</span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+
+            {data.neg_reviews.length > 0 && (
+              <div style={{ background: 'rgba(255, 255, 255, 0.05)', borderRadius: '1rem', padding: '2rem', border: '2px solid rgba(239, 68, 68, 0.3)' }}>
+                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', marginBottom: '2rem', paddingBottom: '1.5rem', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
+                  <ThumbsDown style={{ width: '2.5rem', height: '2.5rem', color: '#ef4444', background: 'rgba(239, 68, 68, 0.2)', padding: '0.5rem', borderRadius: '0.75rem' }} />
+                  <div>
+                    <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#ffffff', margin: '0 0 0.5rem 0' }}>Top Negative Highlights</h2>
+                    <p style={{ fontSize: '0.875rem', color: '#a1a1aa', margin: 0 }}>Common complaints and issues</p>
+                  </div>
+                </div>
+                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
+                  {data.neg_reviews.slice(0, 5).map((review, index) => {
+                    const percentage = (review.mentions / maxNegativeMentions) * 100
+                    return (
+                      <div key={index} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '1rem', borderRadius: '0.75rem' }}>
+                        <p style={{ fontSize: '0.9375rem', color: '#ffffff', fontWeight: 500, margin: 0, lineHeight: 1.5 }}>{review.text}</p>
+                        <div style={{ width: '100%', height: '0.5rem', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '0.25rem', overflow: 'hidden' }}>
+                          <div style={{ height: '100%', width: `${percentage}%`, background: 'linear-gradient(90deg, #ef4444 0%, #dc2626 100%)', borderRadius: '0.25rem' }} />
+                        </div>
+                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end' }}>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '0.375rem 0.75rem', borderRadius: '0.5rem', background: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.4)', color: '#ef4444' }}>{review.mentions} mentions</span>
+                        </div>
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Content Grid */}
         <div className="content-grid">
           {/* Service Center Info */}
-          <div className="insight-card info-card">
-            <h3 className="card-title">Service Center Info</h3>
-            <div className="center-details">
-              <div className="center-detail-item">
-                <MapPin className="detail-icon" />
-                <span className="detail-text">{serviceCenterInfo.address}</span>
-              </div>
-              <div className="center-detail-item">
-                <Phone className="detail-icon" />
-                <span className="detail-text">{serviceCenterInfo.phone}</span>
+          {isTemplateMode && (
+            <div className="insight-card info-card">
+              <h3 className="card-title">Service Center Info</h3>
+              <div className="center-details">
+                <div className="center-detail-item">
+                  <MapPin className="detail-icon" />
+                  <span className="detail-text">{serviceCenterInfo.address}</span>
+                </div>
+                <div className="center-detail-item">
+                  <Phone className="detail-icon" />
+                  <span className="detail-text">{serviceCenterInfo.phone}</span>
+                </div>
               </div>
             </div>
-          </div>
+          )}
 
           {/* Overall Rating Distribution */}
-          <div className="insight-card rating-distribution-card">
-            <h3 className="card-title">Overall Rating Distribution</h3>
-            <div className="rating-summary">
-              <div className="rating-average">
-                <span className="average-value">{ratingDistribution.average}</span>
-                <div className="stars-display-small">
-                  <Star className="star-icon filled" />
-                  <Star className="star-icon filled" />
-                  <Star className="star-icon filled" />
-                  <Star className="star-icon filled" />
-                  <Star className="star-icon partial" />
+          {isTemplateMode && (
+            <div className="insight-card rating-distribution-card">
+              <h3 className="card-title">Overall Rating Distribution</h3>
+              <div className="rating-summary">
+                <div className="rating-average">
+                  <span className="average-value">{ratingDistribution.average}</span>
+                  <div className="stars-display-small">
+                    {[1, 2, 3, 4, 5].map((star) => {
+                      const rating = 4.7
+                      const isFilled = star <= Math.floor(rating)
+                      return <Star key={star} className={`star-icon ${isFilled ? 'filled' : ''}`} style={isFilled ? { fill: '#fbbf24', color: '#fbbf24' } : {}} />
+                    })}
+                  </div>
                 </div>
+                <p className="rating-context">Based on {ratingDistribution.basedOn.toLocaleString()} reviews</p>
               </div>
-              <p className="rating-context">Based on {ratingDistribution.basedOn.toLocaleString()} reviews</p>
-            </div>
-            <div className="rating-bars">
-              {ratingDistribution.distribution.map((item, index) => (
-                <div key={index} className="rating-bar-item">
-                  <div className="rating-bar-info">
-                    <span className="rating-bar-stars">{item.stars} stars</span>
-                    <span className="rating-bar-percentage">{item.percentage}%</span>
+              <div className="rating-bars">
+                {ratingDistribution.distribution.map((item, index) => (
+                  <div key={index} className="rating-bar-item">
+                    <div className="rating-bar-info">
+                      <span className="rating-bar-stars">{item.stars} stars</span>
+                      <span className="rating-bar-percentage">{item.percentage}%</span>
+                    </div>
+                    <div className="rating-bar">
+                      <div 
+                        className="rating-bar-fill" 
+                        style={{ width: `${item.percentage}%` }}
+                      />
+                    </div>
                   </div>
-                  <div className="rating-bar">
-                    <div 
-                      className="rating-bar-fill" 
-                      style={{ width: `${item.percentage}%` }}
-                    />
-                  </div>
-                </div>
-              ))}
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
           {/* Top Praised Staff */}
-          <div className="insight-card staff-card">
-            <h3 className="card-title">Top Praised Staff</h3>
-            <div className="staff-list">
-              {topPraisedStaff.map((staff, index) => (
-                <div key={index} className="staff-item">
-                  <span className="staff-rank">{index + 1}.</span>
-                  <span className="staff-name">{staff.name}</span>
-                  <span className="staff-mentions">- {staff.mentions} mentions</span>
+          {(isTemplateMode || (hasData && hasAttribute('employee praised'))) && (
+            <div className="insight-card staff-card">
+              <h3 className="card-title">Top Praised Staff</h3>
+              {isTemplateMode ? (
+                <div className="staff-list">
+                  {topPraisedStaff.map((staff, index) => (
+                    <div key={index} className="staff-item">
+                      <span className="staff-rank">{index + 1}.</span>
+                      <span className="staff-name">{staff.name}</span>
+                      <span className="staff-mentions">- {staff.mentions} mentions</span>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              ) : (
+                <p style={{ color: '#a1a1aa', fontSize: '0.875rem' }}>{data.attributes_analyzed['employee praised']}</p>
+              )}
             </div>
-          </div>
+          )}
 
           {/* Service Quality Mentions */}
-          <div className="insight-card quality-card">
-            <h3 className="card-title">Service Quality Mentions</h3>
-            <div className="quality-bars">
-              {serviceQualityMentions.map((item, index) => (
-                <div key={index} className="quality-bar-item">
-                  <div className="quality-bar-info">
-                    <span className="quality-bar-label">{item.label}</span>
-                    <span className="quality-bar-percentage">{item.percentage}%</span>
-                  </div>
-                  <div className="quality-bar">
-                    <div 
-                      className="quality-bar-fill" 
-                      style={{ 
-                        width: `${item.percentage}%`, 
-                        backgroundColor: item.color 
-                      }}
-                    />
-                  </div>
+          {(isTemplateMode || (hasData && hasAttribute('service quality mentions'))) && (
+            <div className="insight-card quality-card">
+              <h3 className="card-title">Service Quality Mentions</h3>
+              {isTemplateMode ? (
+                <div className="quality-bars">
+                  {serviceQualityMentions.map((item, index) => (
+                    <div key={index} className="quality-bar-item">
+                      <div className="quality-bar-info">
+                        <span className="quality-bar-label">{item.label}</span>
+                        <span className="quality-bar-percentage">{item.percentage}%</span>
+                      </div>
+                      <div className="quality-bar">
+                        <div 
+                          className="quality-bar-fill" 
+                          style={{ 
+                            width: `${item.percentage}%`, 
+                            backgroundColor: item.color 
+                          }}
+                        />
+                      </div>
+                    </div>
+                  ))}
                 </div>
-              ))}
+              ) : (
+                <p style={{ color: '#a1a1aa', fontSize: '0.875rem' }}>{data.attributes_analyzed['service quality mentions']}</p>
+              )}
             </div>
-          </div>
+          )}
 
           {/* Pricing Sentiment */}
-          <div className="insight-card pricing-card">
-            <h3 className="card-title">Pricing Sentiment</h3>
-            <div className="pricing-sentiment-display">
-              <span className="pricing-sentiment-value">{pricingSentiment.sentiment}</span>
-              <span className="pricing-sentiment-change">{pricingSentiment.change}</span>
+          {(isTemplateMode || (hasData && data.highlights.some(h => h.toLowerCase().includes('pricing') || h.toLowerCase().includes('price')))) && (
+            <div className="insight-card pricing-card">
+              <h3 className="card-title">Pricing Sentiment</h3>
+              {isTemplateMode ? (
+                <>
+                  <div className="pricing-sentiment-display">
+                    <span className="pricing-sentiment-value">{pricingSentiment.sentiment}</span>
+                    <span className="pricing-sentiment-change">{pricingSentiment.change}</span>
+                  </div>
+                  <div className="pricing-gradient-bar">
+                    <div className="gradient-bar">
+                      <div 
+                        className="gradient-marker" 
+                        style={{ left: `${pricingSentiment.position}%` }}
+                      />
+                    </div>
+                    <div className="gradient-labels">
+                      <span className="gradient-label negative">Negative</span>
+                      <span className="gradient-label positive">Positive</span>
+                    </div>
+                  </div>
+                </>
+              ) : (
+                <p style={{ color: '#a1a1aa', fontSize: '0.875rem' }}>Mentioned in reviews</p>
+              )}
             </div>
-            <div className="pricing-gradient-bar">
-              <div className="gradient-bar">
-                <div 
-                  className="gradient-marker" 
-                  style={{ left: `${pricingSentiment.position}%` }}
-                />
-              </div>
-              <div className="gradient-labels">
-                <span className="gradient-label negative">Negative</span>
-                <span className="gradient-label positive">Positive</span>
-              </div>
-            </div>
-          </div>
+          )}
 
           {/* Parts Quality Feedback */}
-          <div className="insight-card parts-card">
-            <h3 className="card-title">Parts Quality Feedback</h3>
-            <div className="parts-labels">
-              <span className="parts-label">OEM</span>
-              <span className="parts-label">Aftermarket</span>
+          {(isTemplateMode || (hasData && hasAttribute('parts quality feedback'))) && (
+            <div className="insight-card parts-card">
+              <h3 className="card-title">Parts Quality Feedback</h3>
+              {isTemplateMode ? (
+                <div className="parts-labels">
+                  <span className="parts-label">OEM</span>
+                  <span className="parts-label">Aftermarket</span>
+                </div>
+              ) : (
+                <p style={{ color: '#a1a1aa', fontSize: '0.875rem' }}>{data.attributes_analyzed['parts quality feedback']}</p>
+              )}
             </div>
-          </div>
+          )}
 
           {/* Average Service Time */}
-          <div className="insight-card service-time-card">
-            <h3 className="card-title">Average Service Time</h3>
-            <div className="service-time-display">
-              <Clock className="service-time-icon" />
-              <div className="service-time-info">
-                <span className="service-time-value">{averageServiceTime.current}</span>
-                <span className="service-time-comparison">vs. {averageServiceTime.previous} last month</span>
-              </div>
+          {(isTemplateMode || (hasData && hasAttribute('service time'))) && (
+            <div className="insight-card service-time-card">
+              <h3 className="card-title">Average Service Time</h3>
+              {isTemplateMode ? (
+                <div className="service-time-display">
+                  <Clock className="service-time-icon" />
+                  <div className="service-time-info">
+                    <span className="service-time-value">{averageServiceTime.current}</span>
+                    <span className="service-time-comparison">vs. {averageServiceTime.previous} last month</span>
+                  </div>
+                </div>
+              ) : (
+                <p style={{ color: '#a1a1aa', fontSize: '0.875rem' }}>{data.attributes_analyzed['service time']}</p>
+              )}
             </div>
-          </div>
+          )}
 
           {/* Fuel Quality Feedback */}
-          <div className="insight-card fuel-card">
-            <h3 className="card-title">Fuel Quality Feedback (Petrol Stations)</h3>
-            <div className="fuel-feedback">
-              <div className="fuel-item positive">
-                <ThumbsUp className="fuel-icon" />
-                <div className="fuel-info">
-                  <span className="fuel-percentage">{fuelQualityFeedback.positive}%</span>
-                  <span className="fuel-label">Positive</span>
+          {(isTemplateMode || (hasData && hasAttribute('fuel quality'))) && (
+            <div className="insight-card fuel-card">
+              <h3 className="card-title">Fuel Quality Feedback (Petrol Stations)</h3>
+              {isTemplateMode ? (
+                <div className="fuel-feedback">
+                  <div className="fuel-item positive">
+                    <ThumbsUp className="fuel-icon" />
+                    <div className="fuel-info">
+                      <span className="fuel-percentage">{fuelQualityFeedback.positive}%</span>
+                      <span className="fuel-label">Positive</span>
+                    </div>
+                  </div>
+                  <div className="fuel-item negative">
+                    <ThumbsDown className="fuel-icon" />
+                    <div className="fuel-info">
+                      <span className="fuel-percentage">{fuelQualityFeedback.negative}%</span>
+                      <span className="fuel-label">Negative</span>
+                    </div>
+                  </div>
                 </div>
-              </div>
-              <div className="fuel-item negative">
-                <ThumbsDown className="fuel-icon" />
-                <div className="fuel-info">
-                  <span className="fuel-percentage">{fuelQualityFeedback.negative}%</span>
-                  <span className="fuel-label">Negative</span>
-                </div>
-              </div>
+              ) : (
+                <p style={{ color: '#a1a1aa', fontSize: '0.875rem' }}>{data.attributes_analyzed['fuel quality']}</p>
+              )}
             </div>
-          </div>
+          )}
         </div>
       </div>
     </div>

@@ -13,7 +13,7 @@ const api = axios.create({
   headers: {
     'Content-Type': 'application/json',
   },
-  timeout: 10000, // 10 second timeout
+  timeout: 60000, // 60 second timeout (AI processing can take longer)
   withCredentials: true, // Include credentials for CORS
 });
 
@@ -80,6 +80,28 @@ export interface FetchReviewsResponse {
   totalReviews: number;
 }
 
+// Backend response structure for /api/reviews/fetch
+export interface AnalysedReview {
+  text: string;
+  mentions: number;
+}
+
+export interface PlaceDataResponse {
+  success: boolean;
+  placeData: {
+    place_name: string;
+    rating: number;
+    pos_reviews: AnalysedReview[];
+    neg_reviews: AnalysedReview[];
+    overall_sentiment: string;
+    highlights: string[];
+    total_reviews: number;
+    category: string;
+    attributes_analyzed: Record<string, string>;
+    possible_filters: string[];
+  };
+}
+
 export interface TrendData {
   period: string;
   averageRating: number;
@@ -143,28 +165,43 @@ export const reviewAPI = {
       const url = `${API_URL}/api/reviews/fetch?place=${encodeURIComponent(place)}`;
       console.log('🧪 Fetch URL:', url);
       
-      const response = await fetch(url, {
-        method: 'GET',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        credentials: 'include'
-      });
+      // Create AbortController for timeout
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 60000); // 60 second timeout
       
-      console.log('🧪 Fetch response:', {
-        ok: response.ok,
-        status: response.status,
-        statusText: response.statusText,
-        headers: Object.fromEntries(response.headers.entries())
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      try {
+        const response = await fetch(url, {
+          method: 'GET',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          credentials: 'include',
+          signal: controller.signal
+        });
+        
+        clearTimeout(timeoutId);
+        
+        console.log('🧪 Fetch response:', {
+          ok: response.ok,
+          status: response.status,
+          statusText: response.statusText,
+          headers: Object.fromEntries(response.headers.entries())
+        });
+        
+        if (!response.ok) {
+          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+        }
+        
+        const data = await response.json();
+        console.log('🧪 Fetch data:', data);
+        return data;
+      } catch (fetchError: any) {
+        clearTimeout(timeoutId);
+        if (fetchError.name === 'AbortError') {
+          throw new Error('Request timed out. The server is taking too long to respond. Please try again.');
+        }
+        throw fetchError;
       }
-      
-      const data = await response.json();
-      console.log('🧪 Fetch data:', data);
-      return data;
     } catch (error) {
       console.error('🧪 Fetch error:', error);
       throw error;
@@ -211,6 +248,36 @@ export const reviewAPI = {
   getInsights: async (placeId: string): Promise<GetInsightsResponse> => {
     const response = await api.get<GetInsightsResponse>(`/reviews/insights/${placeId}`);
     return response.data;
+  },
+
+  // Fetch and analyze reviews - returns the new format
+  fetchAndAnalyze: async (place: string): Promise<PlaceDataResponse> => {
+    console.log('🚀 Making API request to:', `${API_URL}/api/reviews/fetch`);
+    console.log('📍 Place parameter:', place);
+    
+    try {
+      const response = await api.get<PlaceDataResponse>('/reviews/fetch', {
+        params: {
+          place: place
+        }
+      });
+      
+      console.log('✅ API Response received:', response.status, response.statusText);
+      console.log('📦 Response data:', response.data);
+      
+      return response.data;
+    } catch (error) {
+      console.error('❌ API Request failed:', error);
+      if (axios.isAxiosError(error)) {
+        console.error('🔍 Error details:', {
+          status: error.response?.status,
+          statusText: error.response?.statusText,
+          data: error.response?.data,
+          message: error.message
+        });
+      }
+      throw error;
+    }
   },
 };
 
