@@ -55,15 +55,15 @@ Task:
     Includes: banks, salons, repair services, gyms, spas, law offices, consultants.
     attributes_analyzed: most mentioned service teams, service speed, professional skills sentiment, hygiene, pricing fairness, staff friendliness
 
-    g. entertainment
+    g. venue
     Includes: movie theaters, parks, gaming zones, museums, tourist attractions.
     attributes_analyzed: top movies/activities, audio/video quality, hygiene, parking availability sentiment, ambiance
 
-    h. transport
+    h. service-center
     Includes: petrol pumps, car/bike service centers, metro stations, bus stations, parking areas.
     attributes_analyzed: service quality mentions, employee praised, parts quality feedback, fuel quality, service time
     
-    i. Others
+    i. other
 7.  After categorizing analyze the values (using the reviews) for all the attributes under each category based on given records
     
 8. Return ONLY JSON in the following format:
