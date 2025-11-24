@@ -83,22 +83,37 @@ Task:
  * Analyzes sentiment of a chunk of reviews
  */
 export const analyzeSentiment = async (placeData: GooglePlaceDetails): Promise<AnalysedReviewData> => {
+    try {
+        if (!process.env.OPENAI_API_KEY) {
+            throw new Error('OPENAI_API_KEY is not set in environment variables');
+        }
 
-    const ai = new GoogleGenAI({apiKey: process.env.OPENAI_API_KEY});
+        if (!placeData.reviews || placeData.reviews.length === 0) {
+            throw new Error('No reviews available to analyze');
+        }
 
-    const response = await ai.models.generateContent({
-        model: "gemini-2.5-flash",
-        contents: [
-            {
-                text: prompt
-            },
-            {
-                text: JSON.stringify(placeData.reviews)
-            }
-        ],
-    });
+        const ai = new GoogleGenAI({apiKey: process.env.OPENAI_API_KEY});
 
-    let formattedGenAiResponse = extractJsonFromGenAiResponse(response.text)
+        const response = await ai.models.generateContent({
+            model: "gemini-2.5-flash",
+            contents: [
+                {
+                    text: prompt
+                },
+                {
+                    text: JSON.stringify(placeData.reviews)
+                }
+            ],
+        });
+
+        // Handle different response structures
+        const responseText = response.text || response.response?.text || JSON.stringify(response);
+        
+        if (!responseText) {
+            throw new Error('No response text from AI service');
+        }
+
+        let formattedGenAiResponse = extractJsonFromGenAiResponse(responseText)
 
     let oneWeekBack = new Date().getTime() - (7*24*60*60*1000);
     let oneMonthBack = new Date().getTime() - (30*24*60*60*1000);
@@ -116,19 +131,23 @@ export const analyzeSentiment = async (placeData: GooglePlaceDetails): Promise<A
         }
     })
 
-    return {
-        place_name: placeData.name,
-        rating: placeData.rating,
-        pos_reviews: formattedGenAiResponse.positive,
-        neg_reviews: formattedGenAiResponse.negative,
-        overall_sentiment: formattedGenAiResponse.overall_sentiment,
-        highlights: formattedGenAiResponse.highlights,
-        total_reviews: placeData.reviews?.length,
-        category: formattedGenAiResponse.category,
-        attributes_analyzed: formattedGenAiResponse.attributes_analyzed,
-        possible_filters: [...possibleFilters],
+        // Validate and provide defaults for missing fields
+        return {
+            place_name: placeData.name || 'Unknown Place',
+            rating: placeData.rating || 0,
+            pos_reviews: formattedGenAiResponse.positive || [],
+            neg_reviews: formattedGenAiResponse.negative || [],
+            overall_sentiment: formattedGenAiResponse.overall_sentiment || 'neutral',
+            highlights: formattedGenAiResponse.highlights || [],
+            total_reviews: placeData.reviews?.length || 0,
+            category: formattedGenAiResponse.category || 'other',
+            attributes_analyzed: formattedGenAiResponse.attributes_analyzed || {},
+            possible_filters: [...possibleFilters],
+        }
+    } catch (error) {
+        console.error('Error in analyzeSentiment:', error);
+        throw new Error(`Failed to analyze sentiment: ${error instanceof Error ? error.message : 'Unknown error'}`);
     }
-
 };
 
 

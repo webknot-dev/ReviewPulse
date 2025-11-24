@@ -161,6 +161,22 @@
   box-shadow: 0 5px 20px rgba(139, 92, 246, 0.4);
 }
 
+.time-period-button.disabled,
+.time-period-button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  pointer-events: none;
+  background: rgba(255, 255, 255, 0.05);
+  color: #6b7280;
+}
+
+.time-period-button.disabled:hover,
+.time-period-button:disabled:hover {
+  background: rgba(255, 255, 255, 0.05);
+  transform: none;
+  box-shadow: none;
+}
+
 /* Metrics Row */
 .metrics-row {
   display: grid;
@@ -239,6 +255,28 @@
 .price-card:hover {
   box-shadow: 0 20px 60px rgba(139, 92, 246, 0.3);
   border-color: rgba(139, 92, 246, 0.4);
+}
+
+/* Highlight cards without live data */
+.no-live-data {
+  border: 2px dashed rgba(245, 158, 11, 0.5) !important;
+  background: rgba(245, 158, 11, 0.05) !important;
+  position: relative;
+}
+
+.no-live-data::after {
+  content: 'Static Data';
+  position: absolute;
+  top: 0.5rem;
+  right: 0.5rem;
+  background: rgba(245, 158, 11, 0.2);
+  color: #f59e0b;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-size: 0.625rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
 }
 
 .metric-label {
@@ -846,6 +884,17 @@
   color: #a1a1aa;
 }
 
+.staff-description {
+  margin-top: 0.5rem;
+}
+
+.staff-text {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: #d1d5db;
+  margin: 0;
+}
+
 /* Ambiance Card */
 .ambiance-card {
   grid-row: span 2;
@@ -855,6 +904,18 @@
   .ambiance-card {
     grid-row: span 1;
   }
+}
+
+.ambiance-text-container {
+  margin-top: 0.5rem;
+}
+
+.ambiance-text {
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: #d1d5db;
+  margin: 0;
+  text-align: left;
 }
 
 .ambiance-list {

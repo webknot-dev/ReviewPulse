@@ -19,6 +19,18 @@
   margin-bottom: 2rem;
 }
 
+.venue-header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex: 1;
+}
+
+.venue-header-right {
+  display: flex;
+  align-items: center;
+}
+
 .venue-title-section {
   flex: 1;
 }

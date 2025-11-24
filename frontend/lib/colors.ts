@@ -1,4 +1,4 @@
-// Global color configuration for ReviewPulse
+// Global color configuration for WebReview
 // All hex color codes are centralized here for easy maintenance
 
 export const colors = {

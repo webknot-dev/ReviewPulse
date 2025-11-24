@@ -32,7 +32,7 @@ const highlightCards = [
 
 
 interface LandingPageProps {
-  onNavigateToAnalytics?: (placeId: string) => void
+  onNavigateToAnalytics?: (placeId: string, category?: string, apiData?: any) => void
 }
 
 export default function LandingPage(props: LandingPageProps = {}) {
@@ -65,12 +65,21 @@ export default function LandingPage(props: LandingPageProps = {}) {
         const response = testResponse;
         
         console.log('📋 API Response:', response);
+        console.log('📋 API Response Keys:', Object.keys(response || {}));
+        console.log('📋 API Response.rating:', response?.rating);
+        console.log('📋 API Response.total_reviews:', response?.total_reviews);
+        console.log('📋 API Response.pos_reviews:', response?.pos_reviews);
+        console.log('📋 API Response.neg_reviews:', response?.neg_reviews);
+        console.log('📋 API Response.data:', response?.data);
         
         if (response && response.success) {
           console.log('✅ Success! Navigating to analytics...');
           
-          // Get category from response and redirect accordingly
-          const category = response.placeData?.category?.toLowerCase() || 'other'
+          // Extract category from API response if available
+          const category = response.placeData?.category?.toLowerCase() || response.category?.toLowerCase() || response.data?.category?.toLowerCase() || response.place?.category?.toLowerCase() || 'other'
+          console.log('🏷️ Category from API:', category);
+          console.log('📊 Full API Response Data being passed:', JSON.stringify(response, null, 2));
+          
           // Use the original search query, not the API's place_name
           const placeName = placeToSearch
           
@@ -84,14 +93,19 @@ export default function LandingPage(props: LandingPageProps = {}) {
             'financial': '/financial',
             'venue': '/venue',
             'service-center': '/service-center',
+            'service_center': '/service-center',
             'other': '/other'
           }
           
-          const route = categoryRoutes[category] || '/other'
-          const url = `${route}?place=${encodeURIComponent(placeName)}`
-          
-          console.log(`📍 Redirecting to: ${url} (category: ${category})`)
-          router.push(url)
+          // Try using callback first (for page.tsx routing), fallback to direct routing
+          if (onNavigateToAnalytics) {
+            onNavigateToAnalytics(placeName, category, response)
+          } else {
+            const route = categoryRoutes[category] || '/other'
+            const url = `${route}?place=${encodeURIComponent(placeName)}`
+            console.log(`📍 Redirecting to: ${url} (category: ${category})`)
+            router.push(url)
+          }
         } else {
           console.log('❌ API returned success: false');
           setError('Failed to fetch reviews. Please try again.')

@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Download, TrendingUp, Star, MapPin, Phone, Activity, Gamepad2, Theater, LineChart, ThumbsUp, ThumbsDown, Loader2 } from 'lucide-react'
 import { reviewAPI, PlaceDataResponse } from '@/lib/api'
+import jsPDF from 'jspdf'
 import './venue-analytics.css'
 
 interface VenueAnalyticsProps {
@@ -152,19 +153,199 @@ export default function VenueAnalytics({
     phone: '(555) 123-4567'
   }
 
+  // PDF Export Function
+  const handleExportPDF = () => {
+    const doc = new jsPDF()
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const pageHeight = doc.internal.pageSize.getHeight()
+    let yPosition = 20
+    const margin = 20
+    const lineHeight = 7
+    const sectionSpacing = 10
+
+    const checkPageBreak = (requiredSpace: number) => {
+      if (yPosition + requiredSpace > pageHeight - margin) {
+        doc.addPage()
+        yPosition = 20
+      }
+    }
+
+    const addText = (text: string, fontSize: number = 10, isBold: boolean = false, color: number[] = [0, 0, 0]) => {
+      checkPageBreak(lineHeight * 2)
+      doc.setFontSize(fontSize)
+      doc.setTextColor(color[0], color[1], color[2])
+      doc.setFont('helvetica', isBold ? 'bold' : 'normal')
+      const splitText = doc.splitTextToSize(text, pageWidth - 2 * margin)
+      doc.text(splitText, margin, yPosition)
+      yPosition += splitText.length * lineHeight
+    }
+
+    // Header
+    doc.setFillColor(30, 27, 75)
+    doc.rect(0, 0, pageWidth, 40, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(20)
+    doc.setFont('helvetica', 'bold')
+    doc.text(displayName || 'Venue Analytics', margin, 25)
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.text('Analytics Report', margin, 35)
+    yPosition = 50
+
+    const currentDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+    addText(`Generated on: ${currentDate}`, 9, false, [100, 100, 100])
+    yPosition += sectionSpacing
+
+    // Key Metrics
+    addText('KEY METRICS', 14, true, [30, 27, 75])
+    yPosition += 5
+    addText(`Total Reviews: ${metricsData.totalReviews.value}`, 11, true)
+    addText(`Average Rating: ${metricsData.averageRating.value} / ${metricsData.averageRating.maxValue}`, 11, true)
+    addText(`Selected Time Period: ${selectedPeriod}`, 10, false, [100, 100, 100])
+    yPosition += sectionSpacing
+
+    // Top Activities
+    if (isTemplateMode) {
+      addText('TOP 3 MOST-LOVED ACTIVITIES', 12, true, [30, 27, 75])
+      yPosition += 5
+      topActivities.forEach((activity, index) => {
+        addText(`${index + 1}. ${activity.name}`, 10)
+        addText(`   ${activity.description}`, 9)
+        yPosition += 3
+      })
+      yPosition += sectionSpacing
+    } else if (hasData && hasAttribute('top movies/activities')) {
+      addText('TOP 3 MOST-LOVED ACTIVITIES', 12, true, [30, 27, 75])
+      yPosition += 5
+      addText(data.attributes_analyzed['top movies/activities'], 10)
+      yPosition += sectionSpacing
+    }
+
+    // Audio/Video Quality
+    if (isTemplateMode) {
+      addText('AUDIO/VIDEO QUALITY', 12, true, [30, 27, 75])
+      yPosition += 5
+      addText(`Score: ${audioVideoQuality.score} / ${audioVideoQuality.maxScore}`, 11, true)
+      addText(`Rating: ${audioVideoQuality.label} (${audioVideoQuality.percentage}%)`, 10)
+      yPosition += sectionSpacing
+    } else if (hasData && hasAttribute('audio/video quality')) {
+      addText('AUDIO/VIDEO QUALITY', 12, true, [30, 27, 75])
+      yPosition += 5
+      addText(data.attributes_analyzed['audio/video quality'], 10)
+      yPosition += sectionSpacing
+    }
+
+    // Cleanliness
+    if (isTemplateMode) {
+      addText('CLEANLINESS', 12, true, [30, 27, 75])
+      yPosition += 5
+      addText(`Score: ${cleanliness.score} / ${cleanliness.maxScore}`, 11, true)
+      addText(`Rating: ${cleanliness.label} (${cleanliness.percentage}%)`, 10)
+      yPosition += sectionSpacing
+    } else if (hasData && hasAttribute('hygiene')) {
+      addText('CLEANLINESS', 12, true, [30, 27, 75])
+      yPosition += 5
+      addText(data.attributes_analyzed['hygiene'], 10)
+      yPosition += sectionSpacing
+    }
+
+    // Parking Availability
+    if (isTemplateMode) {
+      addText('PARKING AVAILABILITY', 12, true, [30, 27, 75])
+      yPosition += 5
+      addText(`${parkingAvailability.percentage}% ${parkingAvailability.label}`, 10)
+      yPosition += sectionSpacing
+    } else if (hasData && hasAttribute('parking availability sentiment')) {
+      addText('PARKING AVAILABILITY', 12, true, [30, 27, 75])
+      yPosition += 5
+      addText(data.attributes_analyzed['parking availability sentiment'], 10)
+      yPosition += sectionSpacing
+    }
+
+    // Family-Friendly
+    if (isTemplateMode) {
+      addText('FAMILY-FRIENDLY', 12, true, [30, 27, 75])
+      yPosition += 5
+      addText(`${familyFriendly.percentage}% ${familyFriendly.label}`, 10)
+      yPosition += sectionSpacing
+    }
+
+    // Ambiance
+    if (isTemplateMode) {
+      addText('AMBIANCE', 12, true, [30, 27, 75])
+      yPosition += 5
+      ambianceTags.forEach((tag) => {
+        addText(`- ${tag.text}`, 10)
+      })
+      yPosition += sectionSpacing
+    } else if (hasData && hasAttribute('ambiance')) {
+      addText('AMBIANCE', 12, true, [30, 27, 75])
+      yPosition += 5
+      addText(data.attributes_analyzed['ambiance'], 10)
+      yPosition += sectionSpacing
+    }
+
+    // Venue Information
+    if (isTemplateMode) {
+      addText('VENUE INFORMATION', 12, true, [30, 27, 75])
+      yPosition += 5
+      addText(`Address: ${venueInfo.address}`, 10)
+      addText(`Phone: ${venueInfo.phone}`, 10)
+      yPosition += sectionSpacing
+    }
+
+    // Positive Reviews
+    if (data && data.pos_reviews && data.pos_reviews.length > 0) {
+      addText('TOP POSITIVE HIGHLIGHTS', 12, true, [30, 27, 75])
+      yPosition += 5
+      data.pos_reviews.slice(0, 5).forEach((review, index) => {
+        addText(`${index + 1}. ${review.text.substring(0, 150)}${review.text.length > 150 ? '...' : ''}`, 9)
+        addText(`   Mentions: ${review.mentions}`, 8, false, [16, 185, 129])
+        yPosition += 3
+      })
+      yPosition += sectionSpacing
+    }
+
+    // Negative Reviews
+    if (data && data.neg_reviews && data.neg_reviews.length > 0) {
+      addText('TOP NEGATIVE HIGHLIGHTS', 12, true, [30, 27, 75])
+      yPosition += 5
+      data.neg_reviews.slice(0, 5).forEach((review, index) => {
+        addText(`${index + 1}. ${review.text.substring(0, 150)}${review.text.length > 150 ? '...' : ''}`, 9)
+        addText(`   Mentions: ${review.mentions}`, 8, false, [239, 68, 68])
+        yPosition += 3
+      })
+    }
+
+    // Footer
+    const totalPages = doc.getNumberOfPages()
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i)
+      doc.setFontSize(8)
+      doc.setTextColor(100, 100, 100)
+      doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' })
+    }
+
+    doc.save(`${displayName || 'Venue'}_Analytics_${new Date().toISOString().split('T')[0]}.pdf`)
+  }
+
   return (
     <div className="venue-analytics-container">
       <div className="venue-analytics-content">
         {/* Header */}
         <div className="venue-header">
-          <div className="venue-title-section">
-            <h1 className="venue-title">{displayName}</h1>
-            <p className="venue-subtitle">Key insights from customer reviews.</p>
+          <div className="venue-header-left">
+            <div className="venue-title-section">
+              <h1 className="venue-title">{displayName}</h1>
+              <p className="venue-subtitle">Key insights from customer reviews.</p>
+            </div>
           </div>
-          <button className="export-button">
-            <Download className="export-icon" />
-            Export Data
-          </button>
+          <div className="venue-header-right">
+            <button className="export-button" onClick={handleExportPDF}>
+              <Download className="export-icon" />
+              Export Data
+            </button>
+          </div>
         </div>
 
         {/* Time Period Selector */}

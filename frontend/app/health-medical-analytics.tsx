@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Download, Bell, Moon, TrendingUp, Star, Users, Clock, Sparkles, Heart, Pill, CheckCircle2, Building, MapPin, Phone, ThumbsUp, ThumbsDown, Loader2 } from 'lucide-react'
 import { reviewAPI, PlaceDataResponse } from '@/lib/api'
+import jsPDF from 'jspdf'
 import './health-medical-analytics.css'
 
 interface HealthMedicalAnalyticsProps {
@@ -255,6 +256,147 @@ export default function HealthMedicalAnalytics({
   const pharmacyExperience = isTemplateMode ? templatePharmacyExperience : (hasData ? getPharmacyExperience() : null)
   const diagnosisAccuracy = isTemplateMode ? templateDiagnosisAccuracy : (hasData ? getDiagnosisAccuracy() : null)
 
+  // PDF Export Function
+  const handleExportPDF = () => {
+    const doc = new jsPDF()
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const pageHeight = doc.internal.pageSize.getHeight()
+    let yPosition = 20
+    const margin = 20
+    const lineHeight = 7
+    const sectionSpacing = 10
+
+    const checkPageBreak = (requiredSpace: number) => {
+      if (yPosition + requiredSpace > pageHeight - margin) {
+        doc.addPage()
+        yPosition = 20
+      }
+    }
+
+    const addText = (text: string, fontSize: number = 10, isBold: boolean = false, color: number[] = [0, 0, 0]) => {
+      checkPageBreak(lineHeight * 2)
+      doc.setFontSize(fontSize)
+      doc.setTextColor(color[0], color[1], color[2])
+      doc.setFont('helvetica', isBold ? 'bold' : 'normal')
+      const splitText = doc.splitTextToSize(text, pageWidth - 2 * margin)
+      doc.text(splitText, margin, yPosition)
+      yPosition += splitText.length * lineHeight
+    }
+
+    // Header
+    doc.setFillColor(30, 27, 75)
+    doc.rect(0, 0, pageWidth, 40, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(20)
+    doc.setFont('helvetica', 'bold')
+    doc.text(displayName || 'Health Medical Analytics', margin, 25)
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.text('Analytics Report', margin, 35)
+    yPosition = 50
+
+    const currentDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+    addText(`Generated on: ${currentDate}`, 9, false, [100, 100, 100])
+    yPosition += sectionSpacing
+
+    // Key Metrics
+    addText('KEY METRICS', 14, true, [30, 27, 75])
+    yPosition += 5
+    addText(`Total Reviews: ${metricsData.totalReviews.value}`, 11, true)
+    addText(`Average Rating: ${metricsData.averageRating.value} / 5.0`, 11, true)
+    addText(`Sentiment Trend: ${metricsData.sentimentTrend.value}`, 11, true)
+    addText(`Selected Time Period: ${selectedPeriod}`, 10, false, [100, 100, 100])
+    yPosition += sectionSpacing
+
+    // Appreciated Staff
+    if (appreciatedStaff.length > 0) {
+      addText('APPRECIATED STAFF', 12, true, [30, 27, 75])
+      yPosition += 5
+      appreciatedStaff.forEach((staff, index) => {
+        addText(`${index + 1}. ${staff}`, 10)
+      })
+      yPosition += sectionSpacing
+    }
+
+    // Waiting Time
+    if (waitingTime) {
+      addText('WAITING TIME', 12, true, [30, 27, 75])
+      yPosition += 5
+      addText(`${waitingTime.feedback}: ${waitingTime.percentage}%`, 10)
+      yPosition += sectionSpacing
+    }
+
+    // Cleanliness
+    if (cleanliness) {
+      addText('CLEANLINESS', 12, true, [30, 27, 75])
+      yPosition += 5
+      addText(`${cleanliness.percentage}% ${cleanliness.description}`, 10)
+      yPosition += sectionSpacing
+    }
+
+    // Patient Care Sentiment
+    if (patientCareSentiment) {
+      addText('PATIENT CARE SENTIMENT', 12, true, [30, 27, 75])
+      yPosition += 5
+      patientCareSentiment.forEach((item) => {
+        addText(`${item.label}: ${item.percentage}%`, 10)
+      })
+      yPosition += sectionSpacing
+    }
+
+    // Pharmacy Experience
+    if (pharmacyExperience) {
+      addText('PHARMACY EXPERIENCE', 12, true, [30, 27, 75])
+      yPosition += 5
+      addText(pharmacyExperience.description, 10)
+      addText(`Positive: ${pharmacyExperience.positive}%`, 10, false, [16, 185, 129])
+      yPosition += sectionSpacing
+    }
+
+    // Diagnosis Accuracy
+    if (diagnosisAccuracy) {
+      addText('DIAGNOSIS ACCURACY', 12, true, [30, 27, 75])
+      yPosition += 5
+      addText(diagnosisAccuracy.description, 10)
+      addText(`Satisfaction: ${diagnosisAccuracy.satisfaction}%`, 10, false, [16, 185, 129])
+      yPosition += sectionSpacing
+    }
+
+    // Positive Reviews
+    if (data && data.pos_reviews && data.pos_reviews.length > 0) {
+      addText('TOP POSITIVE HIGHLIGHTS', 12, true, [30, 27, 75])
+      yPosition += 5
+      data.pos_reviews.slice(0, 5).forEach((review, index) => {
+        addText(`${index + 1}. ${review.text.substring(0, 150)}${review.text.length > 150 ? '...' : ''}`, 9)
+        addText(`   Mentions: ${review.mentions}`, 8, false, [16, 185, 129])
+        yPosition += 3
+      })
+      yPosition += sectionSpacing
+    }
+
+    // Negative Reviews
+    if (data && data.neg_reviews && data.neg_reviews.length > 0) {
+      addText('TOP NEGATIVE HIGHLIGHTS', 12, true, [30, 27, 75])
+      yPosition += 5
+      data.neg_reviews.slice(0, 5).forEach((review, index) => {
+        addText(`${index + 1}. ${review.text.substring(0, 150)}${review.text.length > 150 ? '...' : ''}`, 9)
+        addText(`   Mentions: ${review.mentions}`, 8, false, [239, 68, 68])
+        yPosition += 3
+      })
+    }
+
+    // Footer
+    const totalPages = doc.getNumberOfPages()
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i)
+      doc.setFontSize(8)
+      doc.setTextColor(100, 100, 100)
+      doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' })
+    }
+
+    doc.save(`${displayName || 'Health_Medical'}_Analytics_${new Date().toISOString().split('T')[0]}.pdf`)
+  }
+
   return (
     <div className="health-analytics-container">
       <div className="health-analytics-content">
@@ -267,7 +409,7 @@ export default function HealthMedicalAnalytics({
             <h1 className="health-logo">{displayName}</h1>
           </div>
           <div className="health-header-right">
-            <button className="export-button">
+            <button className="export-button" onClick={handleExportPDF}>
               <Download className="export-icon" />
               Export Data
             </button>

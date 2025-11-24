@@ -1,60 +1,38 @@
 'use client'
 
-import React, { useState, useEffect } from 'react'
-import { useRouter, useSearchParams } from 'next/navigation'
-import { ArrowLeft, Download, TrendingUp, TrendingDown, MapPin, Phone, Waves, Flower2, Car, ThumbsUp, ThumbsDown, Star, Loader2 } from 'lucide-react'
-import { reviewAPI, PlaceDataResponse } from '@/lib/api'
+import React, { useState } from 'react'
+import { useRouter } from 'next/navigation'
+import { ArrowLeft, Download, TrendingUp, TrendingDown, MapPin, Phone, Waves, Flower2, Car, ThumbsUp, ThumbsDown, Star } from 'lucide-react'
+import jsPDF from 'jspdf'
 import './hotels-accommodation-analytics.css'
 
 interface HotelsAccommodationAnalyticsProps {
   hotelName?: string
   onNavigateBack?: () => void
+  apiData?: any // Allow any structure to handle various API response formats
 }
 
 export default function HotelsAccommodationAnalytics({ 
-  hotelName: hotelNameProp,
-  onNavigateBack 
+  hotelName = 'Grand Hotel', 
+  onNavigateBack,
+  apiData
 }: HotelsAccommodationAnalyticsProps) {
   const router = useRouter()
-  const searchParams = useSearchParams()
-  const placeName = hotelNameProp || searchParams.get('place') || undefined
   const [selectedPeriod, setSelectedPeriod] = useState('Monthly')
-  const [loading, setLoading] = useState(false)
-  const [error, setError] = useState<string>('')
-  const [data, setData] = useState<PlaceDataResponse['placeData'] | null>(null)
 
-  useEffect(() => {
-    if (placeName) {
-      fetchData(placeName)
-    }
-  }, [placeName])
+  // Extract place name from API if available
+  const placeData = apiData?.placeData || apiData?.data?.placeData || apiData
+  const displayName = placeData?.place_name || hotelName
 
-  const fetchData = async (place: string) => {
-    setLoading(true)
-    setError('')
-    try {
-      const response = await reviewAPI.fetchAndAnalyze(place)
-      if (response.success) {
-        setData(response.placeData)
-      } else {
-        setError('Failed to fetch data')
-      }
-    } catch (err: any) {
-      setError(err.message || 'Failed to fetch data')
-    } finally {
-      setLoading(false)
-    }
+  // Extract rating and total_reviews from API response
+  const rating = placeData?.rating || apiData?.rating || apiData?.data?.rating || apiData?.averageRating || apiData?.avg_rating
+  const totalReviews = placeData?.total_reviews || apiData?.total_reviews || apiData?.data?.total_reviews || apiData?.totalReviews || apiData?.reviews?.length || 0
+
+  // Format number with commas
+  const formatNumber = (num: number | undefined | null): string => {
+    if (num === undefined || num === null || isNaN(Number(num))) return '0'
+    return Number(num).toLocaleString()
   }
-
-  const hasAttribute = (key: string): boolean => {
-    if (!data?.attributes_analyzed) return false
-    const value = data.attributes_analyzed[key]
-    return !!value && typeof value === 'string' && value.trim() !== '' && value.toLowerCase() !== 'not enough information from the reviews to analyze'
-  }
-
-  const isTemplateMode = !placeName
-  const hasData = !!data
-  const displayName = data?.place_name || placeName || 'Grand Hotel'
 
   const handleBackNavigation = () => {
     if (onNavigateBack) {
@@ -64,42 +42,24 @@ export default function HotelsAccommodationAnalytics({
     }
   }
 
-  if (loading) {
-    return (
-      <div className="hotel-analytics-container">
-        <div className="hotel-analytics-content" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
-          <div style={{ textAlign: 'center' }}>
-            <Loader2 className="landing-spinner" style={{ width: '3rem', height: '3rem', margin: '0 auto 1rem', animation: 'spin 1s linear infinite' }} />
-            <p style={{ color: '#ffffff', fontSize: '1.125rem' }}>Loading analytics...</p>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
-  if (error) {
-    return (
-      <div className="hotel-analytics-container">
-        <div className="hotel-analytics-content" style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', minHeight: '80vh' }}>
-          <div style={{ textAlign: 'center' }}>
-            <p style={{ color: '#ef4444', fontSize: '1.125rem', marginBottom: '1rem' }}>Error: {error}</p>
-            <button onClick={() => placeName && fetchData(placeName)} style={{ padding: '0.75rem 1.5rem', background: 'linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%)', color: 'white', border: 'none', borderRadius: '0.75rem', cursor: 'pointer', fontWeight: 600 }}>Retry</button>
-          </div>
-        </div>
-      </div>
-    )
-  }
-
+  // Use API data or fallback to mock data
   const metricsData = {
-    reviews: { value: hasData && data.total_reviews ? data.total_reviews.toLocaleString() : '1,250', trend: 'up' as const, change: '15.2%' },
-    averageRating: { value: hasData && data.rating ? data.rating.toFixed(1) : '4.6', maxValue: '5', trend: 'up' as const, change: '0.3' },
-    locationConvenience: { value: '9.2', maxValue: '10', trend: 'down' as const, change: '0.5%' },
-    averageRoomPrice: { value: '$235', trend: 'up' as const, change: '2.5%' }
+    reviews: { 
+      value: formatNumber(totalReviews), 
+      trend: 'up', 
+      change: '15.2%' 
+    },
+    averageRating: { 
+      value: rating ? Number(rating).toFixed(1) : '4.6', 
+      maxValue: '5', 
+      trend: 'up', 
+      change: '0.3' 
+    },
+    locationConvenience: { value: '9.2', maxValue: '10', trend: 'down', change: '0.5%' },
+    averageRoomPrice: { value: '$235', trend: 'up', change: '2.5%' }
   }
 
-  const timePeriods = hasData && data.possible_filters ? data.possible_filters : ['Weekly', 'Monthly', 'Yearly', 'All Time']
-  const maxPositiveMentions = data?.pos_reviews && data.pos_reviews.length > 0 ? Math.max(...data.pos_reviews.map(r => r.mentions)) : 1
-  const maxNegativeMentions = data?.neg_reviews && data.neg_reviews.length > 0 ? Math.max(...data.neg_reviews.map(r => r.mentions)) : 1
+  const timePeriods = ['Weekly', 'Monthly', 'Yearly', 'All Time']
 
   const topFacilities = [
     { icon: Waves, name: 'Pool', mentions: 128, color: '#8b5cf6' },
@@ -139,12 +99,129 @@ export default function HotelsAccommodationAnalytics({
 
   const complimentaryBreakfast = 'Yes'
 
+  // PDF Export Function
+  const handleExportPDF = () => {
+    const doc = new jsPDF()
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const pageHeight = doc.internal.pageSize.getHeight()
+    let yPosition = 20
+    const margin = 20
+    const lineHeight = 7
+    const sectionSpacing = 10
+
+    const checkPageBreak = (requiredSpace: number) => {
+      if (yPosition + requiredSpace > pageHeight - margin) {
+        doc.addPage()
+        yPosition = 20
+      }
+    }
+
+    const addText = (text: string, fontSize: number = 10, isBold: boolean = false, color: number[] = [0, 0, 0]) => {
+      checkPageBreak(lineHeight * 2)
+      doc.setFontSize(fontSize)
+      doc.setTextColor(color[0], color[1], color[2])
+      doc.setFont('helvetica', isBold ? 'bold' : 'normal')
+      const splitText = doc.splitTextToSize(text, pageWidth - 2 * margin)
+      doc.text(splitText, margin, yPosition)
+      yPosition += splitText.length * lineHeight
+    }
+
+    // Header
+    doc.setFillColor(30, 27, 75)
+    doc.rect(0, 0, pageWidth, 40, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(20)
+    doc.setFont('helvetica', 'bold')
+    doc.text(displayName || 'Hotels & Accommodation Insights', margin, 25)
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.text('Analytics Report', margin, 35)
+    yPosition = 50
+
+    const currentDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+    addText(`Generated on: ${currentDate}`, 9, false, [100, 100, 100])
+    yPosition += sectionSpacing
+
+    // Key Metrics
+    addText('KEY METRICS', 14, true, [30, 27, 75])
+    yPosition += 5
+    addText(`Total Reviews: ${metricsData.reviews.value}`, 11, true)
+    addText(`Average Rating: ${metricsData.averageRating.value} / ${metricsData.averageRating.maxValue}`, 11, true)
+    addText(`Location Convenience: ${metricsData.locationConvenience.value} / ${metricsData.locationConvenience.maxValue}`, 11, true)
+    addText(`Average Room Price: ${metricsData.averageRoomPrice.value}`, 11, true)
+    addText(`Selected Time Period: ${selectedPeriod}`, 10, false, [100, 100, 100])
+    yPosition += sectionSpacing
+
+    // Top Facilities
+    addText('TOP 3 APPRECIATED FACILITIES', 12, true, [30, 27, 75])
+    yPosition += 5
+    topFacilities.forEach((facility, index) => {
+      addText(`${index + 1}. ${facility.name}: ${facility.mentions} mentions`, 10)
+    })
+    yPosition += sectionSpacing
+
+    // Room Cleanliness
+    addText('ROOM CLEANLINESS & COMFORT', 12, true, [30, 27, 75])
+    yPosition += 5
+    addText(`Score: ${roomCleanliness.score} / ${roomCleanliness.maxScore}`, 11, true)
+    addText(`Based on ${roomCleanliness.basedOn} mentions`, 10)
+    yPosition += sectionSpacing
+
+    // Top Features
+    addText('TOP 5 BEST FEATURES', 12, true, [30, 27, 75])
+    yPosition += 5
+    topFeatures.forEach((feature) => {
+      addText(`${feature.rank} ${feature.name}`, 10)
+    })
+    yPosition += sectionSpacing
+
+    // Complimentary Breakfast
+    addText('COMPLIMENTARY BREAKFAST', 12, true, [30, 27, 75])
+    yPosition += 5
+    addText(complimentaryBreakfast, 10)
+    yPosition += sectionSpacing
+
+    // Safety & Security
+    addText('SAFETY & SECURITY MENTIONS', 12, true, [30, 27, 75])
+    yPosition += 5
+    addText(`Positive: ${safetyMentions.positive.count} mentions`, 10, false, [16, 185, 129])
+    addText(`Keywords: ${safetyMentions.positive.keywords.join(', ')}`, 9, false, [16, 185, 129])
+    addText(`Negative: ${safetyMentions.negative.count} mentions`, 10, false, [239, 68, 68])
+    addText(`Keywords: ${safetyMentions.negative.keywords.join(', ')}`, 9, false, [239, 68, 68])
+    yPosition += sectionSpacing
+
+    // Hotel Information
+    addText('HOTEL INFORMATION', 12, true, [30, 27, 75])
+    yPosition += 5
+    addText(`Address: ${hotelInfo.address}`, 10)
+    addText(`Phone: ${hotelInfo.phone}`, 10)
+
+    // Footer
+    const totalPages = doc.getNumberOfPages()
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i)
+      doc.setFontSize(8)
+      doc.setTextColor(100, 100, 100)
+      doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' })
+    }
+
+    doc.save(`Hotels_Accommodation_Analytics_${new Date().toISOString().split('T')[0]}.pdf`)
+  }
+
   return (
     <div className="hotel-analytics-container">
       <div className="hotel-analytics-content">
         {/* Header */}
         <div className="hotel-header">
-          <h1 className="hotel-title">{displayName}</h1>
+          <div className="hotel-header-left">
+            <h1 className="hotel-title">{displayName}</h1>
+          </div>
+          <div className="hotel-header-right">
+            <button className="export-button" onClick={handleExportPDF}>
+              <Download className="export-icon" />
+              Export Report
+            </button>
+          </div>
         </div>
 
         {/* Time Period Selector */}
@@ -180,13 +257,6 @@ export default function HotelsAccommodationAnalytics({
               <span className="metric-value">{metricsData.averageRating.value}</span>
               <Star className="rating-star" />
             </div>
-            <div style={{ display: 'flex', gap: '0.25rem', marginTop: '0.5rem' }}>
-              {[1, 2, 3, 4, 5].map((star) => {
-                const rating = hasData && data.rating ? data.rating : 4.6
-                const isFilled = star <= Math.floor(rating)
-                return <Star key={star} style={isFilled ? { fill: '#fbbf24', color: '#fbbf24', width: '1.25rem', height: '1.25rem' } : { width: '1.25rem', height: '1.25rem' }} />
-              })}
-            </div>
             <div className="metric-trend">
               <TrendingUp className="trend-icon up" />
               <span className="trend-text">{metricsData.averageRating.change}</span>
@@ -215,166 +285,74 @@ export default function HotelsAccommodationAnalytics({
           </div>
         </div>
 
-        {/* Top Positive and Negative Highlights */}
-        {!isTemplateMode && data && (data.pos_reviews.length > 0 || data.neg_reviews.length > 0) && (
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '2rem', marginBottom: '2rem' }}>
-            {data.pos_reviews.length > 0 && (
-              <div style={{ background: 'rgba(255, 255, 255, 0.05)', borderRadius: '1rem', padding: '2rem', border: '2px solid rgba(16, 185, 129, 0.3)' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', marginBottom: '2rem', paddingBottom: '1.5rem', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
-                  <ThumbsUp style={{ width: '2.5rem', height: '2.5rem', color: '#10b981', background: 'rgba(16, 185, 129, 0.2)', padding: '0.5rem', borderRadius: '0.75rem' }} />
-                  <div>
-                    <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#ffffff', margin: '0 0 0.5rem 0' }}>Top Positive Highlights</h2>
-                    <p style={{ fontSize: '0.875rem', color: '#a1a1aa', margin: 0 }}>What customers appreciate the most</p>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                  {data.pos_reviews.slice(0, 5).map((review, index) => {
-                    const percentage = (review.mentions / maxPositiveMentions) * 100
-                    return (
-                      <div key={index} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '1rem', borderRadius: '0.75rem' }}>
-                        <p style={{ fontSize: '0.9375rem', color: '#ffffff', fontWeight: 500, margin: 0, lineHeight: 1.5 }}>{review.text}</p>
-                        <div style={{ width: '100%', height: '0.5rem', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '0.25rem', overflow: 'hidden' }}>
-                          <div style={{ height: '100%', width: `${percentage}%`, background: 'linear-gradient(90deg, #10b981 0%, #059669 100%)', borderRadius: '0.25rem' }} />
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                          <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '0.375rem 0.75rem', borderRadius: '0.5rem', background: 'rgba(16, 185, 129, 0.2)', border: '1px solid rgba(16, 185, 129, 0.4)', color: '#10b981' }}>{review.mentions} mentions</span>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            {data.neg_reviews.length > 0 && (
-              <div style={{ background: 'rgba(255, 255, 255, 0.05)', borderRadius: '1rem', padding: '2rem', border: '2px solid rgba(239, 68, 68, 0.3)' }}>
-                <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', marginBottom: '2rem', paddingBottom: '1.5rem', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
-                  <ThumbsDown style={{ width: '2.5rem', height: '2.5rem', color: '#ef4444', background: 'rgba(239, 68, 68, 0.2)', padding: '0.5rem', borderRadius: '0.75rem' }} />
-                  <div>
-                    <h2 style={{ fontSize: '1.5rem', fontWeight: 700, color: '#ffffff', margin: '0 0 0.5rem 0' }}>Top Negative Highlights</h2>
-                    <p style={{ fontSize: '0.875rem', color: '#a1a1aa', margin: 0 }}>Common complaints and issues</p>
-                  </div>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                  {data.neg_reviews.slice(0, 5).map((review, index) => {
-                    const percentage = (review.mentions / maxNegativeMentions) * 100
-                    return (
-                      <div key={index} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '1rem', borderRadius: '0.75rem' }}>
-                        <p style={{ fontSize: '0.9375rem', color: '#ffffff', fontWeight: 500, margin: 0, lineHeight: 1.5 }}>{review.text}</p>
-                        <div style={{ width: '100%', height: '0.5rem', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '0.25rem', overflow: 'hidden' }}>
-                          <div style={{ height: '100%', width: `${percentage}%`, background: 'linear-gradient(90deg, #ef4444 0%, #dc2626 100%)', borderRadius: '0.25rem' }} />
-                        </div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                          <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '0.375rem 0.75rem', borderRadius: '0.5rem', background: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.4)', color: '#ef4444' }}>{review.mentions} mentions</span>
-                        </div>
-                      </div>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-          </div>
-        )}
-
         {/* Detailed Insights Section */}
         <div className="detailed-insights">
           <h2 className="section-title">Detailed Insights</h2>
           
           <div className="insights-grid">
             {/* Top 3 Appreciated Facilities */}
-            {(isTemplateMode || (hasData && data.highlights.some(h => h.toLowerCase().includes('facility') || h.toLowerCase().includes('pool') || h.toLowerCase().includes('spa')))) && (
-              <div className="insight-card facilities-card">
-                <h3 className="card-title">Top 3 Appreciated Facilities</h3>
-                {isTemplateMode ? (
-                  <div className="facilities-list">
-                    {topFacilities.map((facility, index) => (
-                      <div key={index} className="facility-item">
-                        <div className="facility-icon" style={{ color: facility.color }}>
-                          <facility.icon />
-                        </div>
-                        <div className="facility-info">
-                          <span className="facility-name">{facility.name}</span>
-                          <span className="facility-mentions">{facility.mentions} mentions</span>
-                        </div>
-                      </div>
-                    ))}
+            <div className="insight-card facilities-card">
+              <h3 className="card-title">Top 3 Appreciated Facilities</h3>
+              <div className="facilities-list">
+                {topFacilities.map((facility, index) => (
+                  <div key={index} className="facility-item">
+                    <div className="facility-icon" style={{ color: facility.color }}>
+                      <facility.icon />
+                    </div>
+                    <div className="facility-info">
+                      <span className="facility-name">{facility.name}</span>
+                      <span className="facility-mentions">{facility.mentions} mentions</span>
+                    </div>
                   </div>
-                ) : (
-                  <p style={{ color: '#a1a1aa', fontSize: '0.875rem' }}>Mentioned in reviews</p>
-                )}
+                ))}
               </div>
-            )}
+            </div>
 
             {/* Room Cleanliness & Comfort */}
-            {(isTemplateMode || (hasData && hasAttribute('hygiene'))) && (
-              <div className="insight-card cleanliness-card">
-                <h3 className="card-title">Room Cleanliness & Comfort</h3>
-                {isTemplateMode ? (
-                  <>
-                    <div className="cleanliness-score">
-                      <span className="score-value">{roomCleanliness.score}</span>
-                      <span className="score-max">/{roomCleanliness.maxScore}</span>
-                    </div>
-                    <p className="score-description">Based on {roomCleanliness.basedOn} mentions</p>
-                  </>
-                ) : (
-                  <p style={{ color: '#a1a1aa', fontSize: '0.875rem' }}>{data.attributes_analyzed['hygiene']}</p>
-                )}
+            <div className="insight-card cleanliness-card">
+              <h3 className="card-title">Room Cleanliness & Comfort</h3>
+              <div className="cleanliness-score">
+                <span className="score-value">{roomCleanliness.score}</span>
+                <span className="score-max">/{roomCleanliness.maxScore}</span>
               </div>
-            )}
+              <p className="score-description">Based on {roomCleanliness.basedOn} mentions</p>
+            </div>
 
             {/* Top 5 Best Features */}
-            {(isTemplateMode || (hasData && data.highlights.length > 0)) && (
-              <div className="insight-card features-card">
-                <h3 className="card-title">Top 5 Best Features</h3>
-                {isTemplateMode ? (
-                  <div className="features-list">
-                    {topFeatures.map((feature, index) => (
-                      <div key={index} className="feature-item">
-                        <span className="feature-name">{feature.name}</span>
-                        <span className="feature-rank">{feature.rank}</span>
-                      </div>
-                    ))}
+            <div className="insight-card features-card">
+              <h3 className="card-title">Top 5 Best Features</h3>
+              <div className="features-list">
+                {topFeatures.map((feature, index) => (
+                  <div key={index} className="feature-item">
+                    <span className="feature-name">{feature.name}</span>
+                    <span className="feature-rank">{feature.rank}</span>
                   </div>
-                ) : (
-                  <div className="features-list">
-                    {data.highlights.slice(0, 5).map((highlight, index) => (
-                      <div key={index} className="feature-item">
-                        <span className="feature-name">{highlight}</span>
-                        <span className="feature-rank">#{index + 1}</span>
-                      </div>
-                    ))}
-                  </div>
-                )}
+                ))}
               </div>
-            )}
+            </div>
 
             {/* Complimentary Breakfast */}
-            {(isTemplateMode || (hasData && data.highlights.some(h => h.toLowerCase().includes('breakfast')))) && (
-              <div className="insight-card breakfast-card">
-                <h3 className="card-title">Complimentary breakfast</h3>
-                <div className="breakfast-status">
-                  <span className="status-value">{isTemplateMode ? complimentaryBreakfast : 'Mentioned'}</span>
-                </div>
+            <div className="insight-card breakfast-card">
+              <h3 className="card-title">Complimentary breakfast</h3>
+              <div className="breakfast-status">
+                <span className="status-value">{complimentaryBreakfast}</span>
               </div>
-            )}
+            </div>
 
             {/* Hotel Information */}
-            {isTemplateMode && (
-              <div className="insight-card hotel-info-card">
-                <h3 className="card-title">Hotel Information</h3>
-                <div className="hotel-details">
-                  <div className="detail-item">
-                    <MapPin className="detail-icon" />
-                    <span className="detail-text">{hotelInfo.address}</span>
-                  </div>
-                  <div className="detail-item">
-                    <Phone className="detail-icon" />
-                    <span className="detail-text">{hotelInfo.phone}</span>
-                  </div>
+            <div className="insight-card hotel-info-card">
+              <h3 className="card-title">Hotel Information</h3>
+              <div className="hotel-details">
+                <div className="detail-item">
+                  <MapPin className="detail-icon" />
+                  <span className="detail-text">{hotelInfo.address}</span>
+                </div>
+                <div className="detail-item">
+                  <Phone className="detail-icon" />
+                  <span className="detail-text">{hotelInfo.phone}</span>
                 </div>
               </div>
-            )}
+            </div>
           </div>
 
           {/* Safety & Security Mentions */}

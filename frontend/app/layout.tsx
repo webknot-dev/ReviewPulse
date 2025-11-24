@@ -7,7 +7,7 @@ import { QueryProvider } from './providers/QueryProvider'
 const inter = Inter({ subsets: ['latin'] })
 
 export const metadata: Metadata = {
-  title: 'ReviewPulse - AI-Powered Review Analysis',
+  title: 'WebReview - AI-Powered Review Analysis',
   description: 'Analyze thousands of reviews instantly with AI-powered insights',
 }
 

@@ -21,7 +21,7 @@ npm install
 **Backend** - Create `backend/.env`:
 ```env
 PORT=3001
-MONGODB_URI=mongodb://localhost:27017/reviewpulse
+MONGODB_URI=mongodb://localhost:27017/webreview
 OPENAI_API_KEY=your_openai_api_key_here
 GOOGLE_PLACES_API_KEY=your_google_places_api_key_here
 FRONTEND_URL=http://localhost:3000

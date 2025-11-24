@@ -2,7 +2,7 @@
 //
 // export const connectDB = async (): Promise<void> => {
 //   try {
-//     const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/reviewpulse';
+//     const mongoURI = process.env.MONGODB_URI || 'mongodb://localhost:27017/webreview';
 //
 //     await mongoose.connect(mongoURI);
 //     console.log('✅ MongoDB connected successfully');

@@ -11,10 +11,37 @@
   margin: 0 auto;
 }
 
+/* Main Header with Title and Export Button */
+.service-center-main-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  margin-bottom: 2rem;
+  padding: 1rem 0;
+}
+
+.service-center-title-section {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.service-center-title {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #ffffff;
+  margin: 0;
+}
+
+.service-center-header-right {
+  display: flex;
+  align-items: center;
+}
+
 /* Header with Tabs */
 .service-center-header {
   display: flex;
-  justify-content: space-between;
+  justify-content: flex-start;
   align-items: center;
   margin-bottom: 2rem;
   padding: 1rem 0;

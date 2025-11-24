@@ -1,6 +1,6 @@
-# ReviewPulse Backend
+# WebReview Backend
 
-Node.js + Express + TypeScript backend for ReviewPulse.
+Node.js + Express + TypeScript backend for WebReview.
 
 ## Quick Start
 
@@ -12,7 +12,7 @@ npm install
 2. Create `.env` file (see `.env.example`):
 ```env
 PORT=3001
-MONGODB_URI=mongodb://localhost:27017/reviewpulse
+MONGODB_URI=mongodb://localhost:27017/webreview
 OPENAI_API_KEY=your_key_here
 GOOGLE_PLACES_API_KEY=your_key_here
 FRONTEND_URL=http://localhost:3000

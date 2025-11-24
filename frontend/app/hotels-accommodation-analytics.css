@@ -13,7 +13,21 @@
 
 /* Header Section */
 .hotel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
   margin-bottom: 2rem;
+}
+
+.hotel-header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.hotel-header-right {
+  display: flex;
+  align-items: center;
 }
 
 .hotel-title {
@@ -21,6 +35,30 @@
   font-weight: 700;
   margin: 0;
   color: #ffffff;
+}
+
+.export-button {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  background: linear-gradient(135deg, #8b5cf6 0%, #7c3aed 100%);
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 0.75rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.export-button:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(139, 92, 246, 0.3);
+}
+
+.export-icon {
+  width: 1.25rem;
+  height: 1.25rem;
 }
 
 /* Time Period Section */

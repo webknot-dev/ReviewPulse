@@ -4,6 +4,7 @@ import React, { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { Download, TrendingUp, TrendingDown, Star, MapPin, Phone, Clock, ThumbsUp, ThumbsDown, Loader2 } from 'lucide-react'
 import { reviewAPI, PlaceDataResponse } from '@/lib/api'
+import jsPDF from 'jspdf'
 import './service-center-analytics.css'
 
 interface ServiceCenterAnalyticsProps {
@@ -96,8 +97,14 @@ export default function ServiceCenterAnalytics({
   }
 
   const timePeriods = hasData && data.possible_filters ? data.possible_filters : ['Weekly', 'Monthly', 'Yearly', 'All Time']
-  const maxPositiveMentions = data?.pos_reviews && data.pos_reviews.length > 0 ? Math.max(...data.pos_reviews.map(r => r.mentions)) : 1
-  const maxNegativeMentions = data?.neg_reviews && data.neg_reviews.length > 0 ? Math.max(...data.neg_reviews.map(r => r.mentions)) : 1
+  
+  // Safely calculate max mentions with type checking
+  const maxPositiveMentions = data?.pos_reviews && Array.isArray(data.pos_reviews) && data.pos_reviews.length > 0 
+    ? Math.max(...data.pos_reviews.map((r: any) => (typeof r === 'object' && r?.mentions) ? r.mentions : 0).filter((m: number) => !isNaN(m))) 
+    : 1
+  const maxNegativeMentions = data?.neg_reviews && Array.isArray(data.neg_reviews) && data.neg_reviews.length > 0 
+    ? Math.max(...data.neg_reviews.map((r: any) => (typeof r === 'object' && r?.mentions) ? r.mentions : 0).filter((m: number) => !isNaN(m))) 
+    : 1
 
   const serviceCenterInfo = {
     address: '123 Auto Lane, Mechanicville, USA 12345',
@@ -146,10 +153,203 @@ export default function ServiceCenterAnalytics({
     negative: 8
   }
 
+  // PDF Export Function
+  const handleExportPDF = () => {
+    const doc = new jsPDF()
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const pageHeight = doc.internal.pageSize.getHeight()
+    let yPosition = 20
+    const margin = 20
+    const lineHeight = 7
+    const sectionSpacing = 10
+
+    const checkPageBreak = (requiredSpace: number) => {
+      if (yPosition + requiredSpace > pageHeight - margin) {
+        doc.addPage()
+        yPosition = 20
+      }
+    }
+
+    const addText = (text: string, fontSize: number = 10, isBold: boolean = false, color: number[] = [0, 0, 0]) => {
+      checkPageBreak(lineHeight * 2)
+      doc.setFontSize(fontSize)
+      doc.setTextColor(color[0], color[1], color[2])
+      doc.setFont('helvetica', isBold ? 'bold' : 'normal')
+      const splitText = doc.splitTextToSize(text, pageWidth - 2 * margin)
+      doc.text(splitText, margin, yPosition)
+      yPosition += splitText.length * lineHeight
+    }
+
+    // Header
+    doc.setFillColor(30, 27, 75)
+    doc.rect(0, 0, pageWidth, 40, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(20)
+    doc.setFont('helvetica', 'bold')
+    doc.text(displayName || 'Service Center Analytics', margin, 25)
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.text('Analytics Report', margin, 35)
+    yPosition = 50
+
+    const currentDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+    addText(`Generated on: ${currentDate}`, 9, false, [100, 100, 100])
+    yPosition += sectionSpacing
+
+    // Key Metrics
+    addText('KEY METRICS', 14, true, [30, 27, 75])
+    yPosition += 5
+    addText(`Total Reviews: ${metricsData.totalReviews.value}`, 11, true)
+    addText(`Average Rating: ${metricsData.averageRating.value} / 5.0`, 11, true)
+    addText(`Selected Time Period: ${selectedPeriod}`, 10, false, [100, 100, 100])
+    yPosition += sectionSpacing
+
+    // Service Center Info
+    if (isTemplateMode) {
+      addText('SERVICE CENTER INFO', 12, true, [30, 27, 75])
+      yPosition += 5
+      addText(`Address: ${serviceCenterInfo.address}`, 10)
+      addText(`Phone: ${serviceCenterInfo.phone}`, 10)
+      yPosition += sectionSpacing
+    }
+
+    // Rating Distribution
+    if (isTemplateMode) {
+      addText('OVERALL RATING DISTRIBUTION', 12, true, [30, 27, 75])
+      yPosition += 5
+      addText(`Average: ${ratingDistribution.average} / 5.0`, 11, true)
+      addText(`Based on ${ratingDistribution.basedOn.toLocaleString()} reviews`, 10)
+      ratingDistribution.distribution.forEach((item) => {
+        addText(`${item.stars} stars: ${item.percentage}%`, 10)
+      })
+      yPosition += sectionSpacing
+    }
+
+    // Top Praised Staff
+    if (isTemplateMode) {
+      addText('TOP PRAISED STAFF', 12, true, [30, 27, 75])
+      yPosition += 5
+      topPraisedStaff.forEach((staff, index) => {
+        addText(`${index + 1}. ${staff.name} - ${staff.mentions} mentions`, 10)
+      })
+      yPosition += sectionSpacing
+    } else if (hasData && hasAttribute('employee praised')) {
+      addText('TOP PRAISED STAFF', 12, true, [30, 27, 75])
+      yPosition += 5
+      addText(data.attributes_analyzed['employee praised'], 10)
+      yPosition += sectionSpacing
+    }
+
+    // Service Quality
+    if (isTemplateMode) {
+      addText('SERVICE QUALITY MENTIONS', 12, true, [30, 27, 75])
+      yPosition += 5
+      serviceQualityMentions.forEach((item) => {
+        addText(`${item.label}: ${item.percentage}%`, 10)
+      })
+      yPosition += sectionSpacing
+    } else if (hasData && hasAttribute('service quality mentions')) {
+      addText('SERVICE QUALITY MENTIONS', 12, true, [30, 27, 75])
+      yPosition += 5
+      addText(data.attributes_analyzed['service quality mentions'], 10)
+      yPosition += sectionSpacing
+    }
+
+    // Pricing Sentiment
+    if (isTemplateMode) {
+      addText('PRICING SENTIMENT', 12, true, [30, 27, 75])
+      yPosition += 5
+      addText(`${pricingSentiment.sentiment}`, 11, true)
+      addText(pricingSentiment.change, 10)
+      yPosition += sectionSpacing
+    }
+
+    // Average Service Time
+    if (isTemplateMode) {
+      addText('AVERAGE SERVICE TIME', 12, true, [30, 27, 75])
+      yPosition += 5
+      addText(`Current: ${averageServiceTime.current}`, 11, true)
+      addText(`Previous: ${averageServiceTime.previous}`, 10)
+      yPosition += sectionSpacing
+    } else if (hasData && hasAttribute('service time')) {
+      addText('AVERAGE SERVICE TIME', 12, true, [30, 27, 75])
+      yPosition += 5
+      addText(data.attributes_analyzed['service time'], 10)
+      yPosition += sectionSpacing
+    }
+
+    // Fuel Quality
+    if (isTemplateMode) {
+      addText('FUEL QUALITY FEEDBACK', 12, true, [30, 27, 75])
+      yPosition += 5
+      addText(`Positive: ${fuelQualityFeedback.positive}%`, 10, false, [16, 185, 129])
+      addText(`Negative: ${fuelQualityFeedback.negative}%`, 10, false, [239, 68, 68])
+      yPosition += sectionSpacing
+    } else if (hasData && hasAttribute('fuel quality')) {
+      addText('FUEL QUALITY FEEDBACK', 12, true, [30, 27, 75])
+      yPosition += 5
+      addText(data.attributes_analyzed['fuel quality'], 10)
+      yPosition += sectionSpacing
+    }
+
+    // Positive Reviews
+    if (data && data.pos_reviews && Array.isArray(data.pos_reviews) && data.pos_reviews.length > 0) {
+      addText('TOP POSITIVE HIGHLIGHTS', 12, true, [30, 27, 75])
+      yPosition += 5
+      data.pos_reviews.slice(0, 5).forEach((review: any, index: number) => {
+        const reviewText = typeof review === 'string' ? review : (review?.text || '')
+        const safeText = typeof reviewText === 'string' ? reviewText : String(reviewText || '')
+        const truncatedText = safeText.length > 150 ? safeText.substring(0, 150) + '...' : safeText
+        addText(`${index + 1}. ${truncatedText}`, 9)
+        addText(`   Mentions: ${review?.mentions || 0}`, 8, false, [16, 185, 129])
+        yPosition += 3
+      })
+      yPosition += sectionSpacing
+    }
+
+    // Negative Reviews
+    if (data && data.neg_reviews && Array.isArray(data.neg_reviews) && data.neg_reviews.length > 0) {
+      addText('TOP NEGATIVE HIGHLIGHTS', 12, true, [30, 27, 75])
+      yPosition += 5
+      data.neg_reviews.slice(0, 5).forEach((review: any, index: number) => {
+        const reviewText = typeof review === 'string' ? review : (review?.text || '')
+        const safeText = typeof reviewText === 'string' ? reviewText : String(reviewText || '')
+        const truncatedText = safeText.length > 150 ? safeText.substring(0, 150) + '...' : safeText
+        addText(`${index + 1}. ${truncatedText}`, 9)
+        addText(`   Mentions: ${review?.mentions || 0}`, 8, false, [239, 68, 68])
+        yPosition += 3
+      })
+    }
+
+    // Footer
+    const totalPages = doc.getNumberOfPages()
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i)
+      doc.setFontSize(8)
+      doc.setTextColor(100, 100, 100)
+      doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' })
+    }
+
+    doc.save(`${displayName || 'Service_Center'}_Analytics_${new Date().toISOString().split('T')[0]}.pdf`)
+  }
+
   return (
     <div className="service-center-container">
       <div className="service-center-content">
-        {/* Header with Tabs and Export Button */}
+        {/* Main Header with Title and Export Button */}
+        <div className="service-center-main-header">
+          <div className="service-center-title-section">
+            <h1 className="service-center-title">{displayName}</h1>
+          </div>
+          <div className="service-center-header-right">
+            <button className="export-button" onClick={handleExportPDF}>
+              <Download className="export-icon" />
+              Export Data
+            </button>
+          </div>
+        </div>
+
+        {/* Time Period Tabs */}
         <div className="service-center-header">
           <div className="time-period-tabs">
             {timePeriods.map((period) => (
@@ -162,10 +362,6 @@ export default function ServiceCenterAnalytics({
               </button>
             ))}
           </div>
-          <button className="export-button">
-            <Download className="export-icon" />
-            Export Data
-          </button>
         </div>
 
         {/* Top Metrics Row */}
@@ -199,9 +395,9 @@ export default function ServiceCenterAnalytics({
         </div>
 
         {/* Top Positive and Negative Highlights */}
-        {!isTemplateMode && data && (data.pos_reviews.length > 0 || data.neg_reviews.length > 0) && (
+        {!isTemplateMode && data && Array.isArray(data.pos_reviews) && Array.isArray(data.neg_reviews) && (data.pos_reviews.length > 0 || data.neg_reviews.length > 0) && (
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: '2rem', marginBottom: '2rem' }}>
-            {data.pos_reviews.length > 0 && (
+            {data.pos_reviews && data.pos_reviews.length > 0 && (
               <div style={{ background: 'rgba(255, 255, 255, 0.05)', borderRadius: '1rem', padding: '2rem', border: '2px solid rgba(16, 185, 129, 0.3)' }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', marginBottom: '2rem', paddingBottom: '1.5rem', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
                   <ThumbsUp style={{ width: '2.5rem', height: '2.5rem', color: '#10b981', background: 'rgba(16, 185, 129, 0.2)', padding: '0.5rem', borderRadius: '0.75rem' }} />
@@ -211,16 +407,19 @@ export default function ServiceCenterAnalytics({
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                  {data.pos_reviews.slice(0, 5).map((review, index) => {
-                    const percentage = (review.mentions / maxPositiveMentions) * 100
+                  {data.pos_reviews.slice(0, 5).map((review: any, index: number) => {
+                    const reviewText = typeof review === 'string' ? review : (review?.text || '')
+                    const safeText = typeof reviewText === 'string' ? reviewText : String(reviewText || '')
+                    const mentions = review?.mentions || 0
+                    const percentage = maxPositiveMentions > 0 ? (mentions / maxPositiveMentions) * 100 : 0
                     return (
                       <div key={index} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '1rem', borderRadius: '0.75rem' }}>
-                        <p style={{ fontSize: '0.9375rem', color: '#ffffff', fontWeight: 500, margin: 0, lineHeight: 1.5 }}>{review.text}</p>
+                        <p style={{ fontSize: '0.9375rem', color: '#ffffff', fontWeight: 500, margin: 0, lineHeight: 1.5 }}>{safeText}</p>
                         <div style={{ width: '100%', height: '0.5rem', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '0.25rem', overflow: 'hidden' }}>
                           <div style={{ height: '100%', width: `${percentage}%`, background: 'linear-gradient(90deg, #10b981 0%, #059669 100%)', borderRadius: '0.25rem' }} />
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                          <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '0.375rem 0.75rem', borderRadius: '0.5rem', background: 'rgba(16, 185, 129, 0.2)', border: '1px solid rgba(16, 185, 129, 0.4)', color: '#10b981' }}>{review.mentions} mentions</span>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '0.375rem 0.75rem', borderRadius: '0.5rem', background: 'rgba(16, 185, 129, 0.2)', border: '1px solid rgba(16, 185, 129, 0.4)', color: '#10b981' }}>{mentions} mentions</span>
                         </div>
                       </div>
                     )
@@ -229,7 +428,7 @@ export default function ServiceCenterAnalytics({
               </div>
             )}
 
-            {data.neg_reviews.length > 0 && (
+            {data.neg_reviews && data.neg_reviews.length > 0 && (
               <div style={{ background: 'rgba(255, 255, 255, 0.05)', borderRadius: '1rem', padding: '2rem', border: '2px solid rgba(239, 68, 68, 0.3)' }}>
                 <div style={{ display: 'flex', alignItems: 'flex-start', gap: '1rem', marginBottom: '2rem', paddingBottom: '1.5rem', borderBottom: '1px solid rgba(255, 255, 255, 0.1)' }}>
                   <ThumbsDown style={{ width: '2.5rem', height: '2.5rem', color: '#ef4444', background: 'rgba(239, 68, 68, 0.2)', padding: '0.5rem', borderRadius: '0.75rem' }} />
@@ -239,16 +438,19 @@ export default function ServiceCenterAnalytics({
                   </div>
                 </div>
                 <div style={{ display: 'flex', flexDirection: 'column', gap: '1.5rem' }}>
-                  {data.neg_reviews.slice(0, 5).map((review, index) => {
-                    const percentage = (review.mentions / maxNegativeMentions) * 100
+                  {data.neg_reviews.slice(0, 5).map((review: any, index: number) => {
+                    const reviewText = typeof review === 'string' ? review : (review?.text || '')
+                    const safeText = typeof reviewText === 'string' ? reviewText : String(reviewText || '')
+                    const mentions = review?.mentions || 0
+                    const percentage = maxNegativeMentions > 0 ? (mentions / maxNegativeMentions) * 100 : 0
                     return (
                       <div key={index} style={{ display: 'flex', flexDirection: 'column', gap: '0.75rem', padding: '1rem', borderRadius: '0.75rem' }}>
-                        <p style={{ fontSize: '0.9375rem', color: '#ffffff', fontWeight: 500, margin: 0, lineHeight: 1.5 }}>{review.text}</p>
+                        <p style={{ fontSize: '0.9375rem', color: '#ffffff', fontWeight: 500, margin: 0, lineHeight: 1.5 }}>{safeText}</p>
                         <div style={{ width: '100%', height: '0.5rem', background: 'rgba(255, 255, 255, 0.1)', borderRadius: '0.25rem', overflow: 'hidden' }}>
                           <div style={{ height: '100%', width: `${percentage}%`, background: 'linear-gradient(90deg, #ef4444 0%, #dc2626 100%)', borderRadius: '0.25rem' }} />
                         </div>
                         <div style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', justifyContent: 'flex-end' }}>
-                          <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '0.375rem 0.75rem', borderRadius: '0.5rem', background: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.4)', color: '#ef4444' }}>{review.mentions} mentions</span>
+                          <span style={{ fontSize: '0.75rem', fontWeight: 600, padding: '0.375rem 0.75rem', borderRadius: '0.5rem', background: 'rgba(239, 68, 68, 0.2)', border: '1px solid rgba(239, 68, 68, 0.4)', color: '#ef4444' }}>{mentions} mentions</span>
                         </div>
                       </div>
                     )
@@ -329,7 +531,7 @@ export default function ServiceCenterAnalytics({
                   ))}
                 </div>
               ) : (
-                <p style={{ color: '#a1a1aa', fontSize: '0.875rem' }}>{data.attributes_analyzed['employee praised']}</p>
+                <p style={{ color: '#a1a1aa', fontSize: '0.875rem' }}>{data?.attributes_analyzed?.['employee praised'] || ''}</p>
               )}
             </div>
           )}
@@ -359,13 +561,13 @@ export default function ServiceCenterAnalytics({
                   ))}
                 </div>
               ) : (
-                <p style={{ color: '#a1a1aa', fontSize: '0.875rem' }}>{data.attributes_analyzed['service quality mentions']}</p>
+                <p style={{ color: '#a1a1aa', fontSize: '0.875rem' }}>{data?.attributes_analyzed?.['service quality mentions'] || ''}</p>
               )}
             </div>
           )}
 
           {/* Pricing Sentiment */}
-          {(isTemplateMode || (hasData && data.highlights.some(h => h.toLowerCase().includes('pricing') || h.toLowerCase().includes('price')))) && (
+          {(isTemplateMode || (hasData && data?.highlights?.some((h: string) => h.toLowerCase().includes('pricing') || h.toLowerCase().includes('price')))) && (
             <div className="insight-card pricing-card">
               <h3 className="card-title">Pricing Sentiment</h3>
               {isTemplateMode ? (
@@ -403,7 +605,7 @@ export default function ServiceCenterAnalytics({
                   <span className="parts-label">Aftermarket</span>
                 </div>
               ) : (
-                <p style={{ color: '#a1a1aa', fontSize: '0.875rem' }}>{data.attributes_analyzed['parts quality feedback']}</p>
+                <p style={{ color: '#a1a1aa', fontSize: '0.875rem' }}>{data?.attributes_analyzed?.['parts quality feedback'] || ''}</p>
               )}
             </div>
           )}
@@ -421,7 +623,7 @@ export default function ServiceCenterAnalytics({
                   </div>
                 </div>
               ) : (
-                <p style={{ color: '#a1a1aa', fontSize: '0.875rem' }}>{data.attributes_analyzed['service time']}</p>
+                <p style={{ color: '#a1a1aa', fontSize: '0.875rem' }}>{data?.attributes_analyzed?.['service time'] || ''}</p>
               )}
             </div>
           )}
@@ -448,7 +650,7 @@ export default function ServiceCenterAnalytics({
                   </div>
                 </div>
               ) : (
-                <p style={{ color: '#a1a1aa', fontSize: '0.875rem' }}>{data.attributes_analyzed['fuel quality']}</p>
+                <p style={{ color: '#a1a1aa', fontSize: '0.875rem' }}>{data?.attributes_analyzed?.['fuel quality'] || ''}</p>
               )}
             </div>
           )}

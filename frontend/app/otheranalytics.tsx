@@ -2,8 +2,9 @@
 
 import React, { useState, useEffect } from 'react'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { Star, TrendingUp, ThumbsUp, ThumbsDown, Loader2 } from 'lucide-react'
+import { Star, TrendingUp, ThumbsUp, ThumbsDown, Loader2, Download } from 'lucide-react'
 import { reviewAPI, PlaceDataResponse } from '@/lib/api'
+import jsPDF from 'jspdf'
 import './otheranalytics.css'
 
 interface OtherAnalyticsProps {
@@ -114,9 +115,112 @@ export default function OtherAnalytics({
   const maxPositiveMentions = positiveHighlights.length > 0 ? Math.max(...positiveHighlights.map(h => h.mentions)) : 1
   const maxNegativeMentions = negativeHighlights.length > 0 ? Math.max(...negativeHighlights.map(h => h.mentions)) : 1
 
+  // PDF Export Function
+  const handleExportPDF = () => {
+    const doc = new jsPDF()
+    const pageWidth = doc.internal.pageSize.getWidth()
+    const pageHeight = doc.internal.pageSize.getHeight()
+    let yPosition = 20
+    const margin = 20
+    const lineHeight = 7
+    const sectionSpacing = 10
+
+    const checkPageBreak = (requiredSpace: number) => {
+      if (yPosition + requiredSpace > pageHeight - margin) {
+        doc.addPage()
+        yPosition = 20
+      }
+    }
+
+    const addText = (text: string, fontSize: number = 10, isBold: boolean = false, color: number[] = [0, 0, 0]) => {
+      checkPageBreak(lineHeight * 2)
+      doc.setFontSize(fontSize)
+      doc.setTextColor(color[0], color[1], color[2])
+      doc.setFont('helvetica', isBold ? 'bold' : 'normal')
+      const splitText = doc.splitTextToSize(text, pageWidth - 2 * margin)
+      doc.text(splitText, margin, yPosition)
+      yPosition += splitText.length * lineHeight
+    }
+
+    // Header
+    doc.setFillColor(30, 27, 75)
+    doc.rect(0, 0, pageWidth, 40, 'F')
+    doc.setTextColor(255, 255, 255)
+    doc.setFontSize(20)
+    doc.setFont('helvetica', 'bold')
+    doc.text(data?.place_name || placeName || 'Review Analytics', margin, 25)
+    doc.setFontSize(10)
+    doc.setFont('helvetica', 'normal')
+    doc.text('Analytics Report', margin, 35)
+    yPosition = 50
+
+    const currentDate = new Date().toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })
+    addText(`Generated on: ${currentDate}`, 9, false, [100, 100, 100])
+    yPosition += sectionSpacing
+
+    // Key Metrics
+    addText('KEY METRICS', 14, true, [30, 27, 75])
+    yPosition += 5
+    addText(`Total Reviews: ${metrics.reviews}`, 11, true)
+    addText(`Average Rating: ${metrics.avgRating} / 5.0`, 11, true)
+    addText(`Sentiment: ${metrics.sentiment.charAt(0).toUpperCase() + metrics.sentiment.slice(1)}`, 11, true)
+    addText(`Selected Time Period: ${selectedPeriod}`, 10, false, [100, 100, 100])
+    yPosition += sectionSpacing
+
+    // Positive Highlights
+    if (positiveHighlights.length > 0) {
+      addText('TOP POSITIVE HIGHLIGHTS', 12, true, [30, 27, 75])
+      yPosition += 5
+      positiveHighlights.forEach((highlight, index) => {
+        addText(`${index + 1}. ${highlight.text.substring(0, 150)}${highlight.text.length > 150 ? '...' : ''}`, 9)
+        addText(`   Mentions: ${highlight.mentions}`, 8, false, [16, 185, 129])
+        yPosition += 3
+      })
+      yPosition += sectionSpacing
+    }
+
+    // Negative Highlights
+    if (negativeHighlights.length > 0) {
+      addText('TOP NEGATIVE HIGHLIGHTS', 12, true, [30, 27, 75])
+      yPosition += 5
+      negativeHighlights.forEach((highlight, index) => {
+        addText(`${index + 1}. ${highlight.text.substring(0, 150)}${highlight.text.length > 150 ? '...' : ''}`, 9)
+        addText(`   Mentions: ${highlight.mentions}`, 8, false, [239, 68, 68])
+        yPosition += 3
+      })
+    }
+
+    // Footer
+    const totalPages = doc.getNumberOfPages()
+    for (let i = 1; i <= totalPages; i++) {
+      doc.setPage(i)
+      doc.setFontSize(8)
+      doc.setTextColor(100, 100, 100)
+      doc.text(`Page ${i} of ${totalPages}`, pageWidth / 2, pageHeight - 10, { align: 'center' })
+    }
+
+    const fileName = `${data?.place_name || placeName || 'Review'}_Analytics_${new Date().toISOString().split('T')[0]}.pdf`
+    doc.save(fileName)
+  }
+
   return (
     <div className="other-analytics-container">
       <div className="other-analytics-content">
+        {/* Header with Export Button */}
+        <div className="other-analytics-header">
+          <div className="other-header-left">
+            <h1 className="other-header-title">
+              {data?.place_name || placeName || 'Review Analytics'}
+            </h1>
+          </div>
+          <div className="other-header-right">
+            <button className="export-button" onClick={handleExportPDF}>
+              <Download className="export-icon" />
+              Export Report
+            </button>
+          </div>
+        </div>
+
         {/* Time Period Selector */}
         <div className="time-period-section">
           <span className="time-period-label">Time Period</span>

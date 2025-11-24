@@ -15,9 +15,20 @@
 .financial-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 2rem;
   padding: 1rem 0;
+}
+
+.financial-header-left {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.financial-header-right {
+  display: flex;
+  align-items: center;
 }
 
 .financial-title {

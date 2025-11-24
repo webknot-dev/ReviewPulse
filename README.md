@@ -1,4 +1,4 @@
-# ReviewPulse 🚀
+# WebReview 🚀
 
 **AI-Powered Review Analysis Engine** - Analyze thousands of Google reviews instantly and extract meaningful insights.
 
@@ -6,7 +6,7 @@
 
 People depend heavily on online reviews before choosing hotels, schools, restaurants, products, tourist spots, or services. But these places often have thousands or even lakhs of reviews, spread across many years, making it impossible for normal users to read and understand overall sentiment.
 
-**ReviewPulse solves this by:**
+**WebReview solves this by:**
 - ✅ Extracting top positive highlights
 - ✅ Identifying common complaints
 - ✅ Analyzing sentiment trends over time
@@ -16,7 +16,7 @@ People depend heavily on online reviews before choosing hotels, schools, restaur
 ## 🏗️ Project Structure
 
 ```
-ReviewPulse/
+WebReview/
 ├── backend/                 # Node.js + Express + TypeScript backend
 │   ├── src/
 │   │   ├── config/         # Database configuration
@@ -67,7 +67,7 @@ ReviewPulse/
 
 ### Step 1: Clone & Navigate
 ```bash
-cd ReviewPulse
+cd WebReview
 ```
 
 ### Step 2: Backend Setup
@@ -85,9 +85,9 @@ PORT=3001
 NODE_ENV=development
 
 # MongoDB Configuration
-MONGODB_URI=mongodb://localhost:27017/reviewpulse
+MONGODB_URI=mongodb://localhost:27017/webreview
 # OR use MongoDB Atlas:
-# MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/reviewpulse
+# MONGODB_URI=mongodb+srv://username:password@cluster.mongodb.net/webreview
 
 # OpenAI Configuration (Optional - will use fallback if not provided)
 OPENAI_API_KEY=your_openai_api_key_here

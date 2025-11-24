@@ -1,7 +1,7 @@
 {
-  "name": "reviewpulse-backend",
+  "name": "webreview-backend",
   "version": "1.0.0",
-  "description": "ReviewPulse Backend - AI-powered review analysis engine",
+  "description": "WebReview Backend - AI-powered review analysis engine",
   "main": "dist/server.js",
   "scripts": {
     "dev": "tsx watch src/server.ts",

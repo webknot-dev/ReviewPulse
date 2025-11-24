@@ -47,7 +47,18 @@ export const fetchPlaceDetails = async (
           }
       });
 
+      // Check if place was found
+      if (!searchRes.data.candidates || searchRes.data.candidates.length === 0) {
+          console.log(`⚠️ Place "${place}" not found in Google Places API, using mock data`);
+          return getMockPlaceData(place);
+      }
+
       const placeId = searchRes.data.candidates[0].place_id;
+
+      if (!placeId) {
+          console.log(`⚠️ No place_id found for "${place}", using mock data`);
+          return getMockPlaceData(place);
+      }
 
       // Step 2: Fetch reviews
       const reviewsRes = await axios.get(baseUrlDetails, {
@@ -58,11 +69,23 @@ export const fetchPlaceDetails = async (
           }
       });
 
+      // Check if place details were returned
+      if (!reviewsRes.data.result) {
+          console.log(`⚠️ No details found for place_id "${placeId}", using mock data`);
+          return getMockPlaceData(place);
+      }
+
       let placeDetails = reviewsRes.data.result;
+
+      // Ensure reviews array exists
+      if (!placeDetails.reviews || !Array.isArray(placeDetails.reviews)) {
+          console.log(`⚠️ No reviews found for "${place}", using mock data`);
+          return getMockPlaceData(place);
+      }
 
       return {
           place_id: placeId,
-          name: placeDetails.name,
+          name: placeDetails.name || place,
           formatted_address: placeDetails.formatted_address,
           types: ['restaurant', 'food', 'establishment'],
           rating: placeDetails.rating,
@@ -72,6 +95,9 @@ export const fetchPlaceDetails = async (
 
   } catch (error) {
       console.error('❌ Error fetching from Google Places API:', error);
+      if (error instanceof Error) {
+          console.error('Error details:', error.message);
+      }
       console.log('📦 Falling back to mock data');
       return getMockPlaceData(place);
   }

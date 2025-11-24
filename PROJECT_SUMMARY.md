@@ -1,4 +1,4 @@
-# ReviewPulse - Project Summary
+# WebReview - Project Summary
 
 ## ✅ What's Been Built
 
@@ -35,7 +35,7 @@ A complete full-stack application for AI-powered review analysis with:
 ## 📁 File Structure
 
 ```
-ReviewPulse/
+WebReview/
 ├── backend/
 │   ├── src/
 │   │   ├── config/db.ts          # MongoDB connection

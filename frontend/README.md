@@ -1,6 +1,6 @@
-# ReviewPulse Frontend
+# WebReview Frontend
 
-Next.js 14 + Tailwind CSS frontend for ReviewPulse.
+Next.js 14 + Tailwind CSS frontend for WebReview.
 
 ## Quick Start
 
